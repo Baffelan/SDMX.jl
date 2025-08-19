@@ -1,0 +1,2102 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "SDMX 2.1 API",
+        "description": "The SDMX API 2.1 focuses on performing a limited set of standard queries. In contrast to other parts of the SDMX specification, the RESTful API focuses solely on data retrieval (via HTTP GET).\n\nThe IMF API allows developers to build applications and integrate IMF data. You can use the IMF APIs to import economic and financial data from databases available on http://data.imf.org/ into your data systems or applications. For additional information on working with the API, refer to the [Help here](https://datasupport.imf.org/knowledge?id=knowledge_category&sys_kb_id=&category_id=9959b2bc1b6391903dba646fbd4bcb6a). For questions, contact datahelp@imf.org.",
+        "version": "1.0"
+    },
+    "servers": [
+        {
+            "url": "https://api.imf.org/external/sdmx/2.1"
+        }
+    ],
+    "paths": {
+        "/{structureType}/{agencyID}/{resourceID}/{version}": {
+            "get": {
+                "tags": [
+                    "Structure queries"
+                ],
+                "summary": "Structure Query [Structure Type, Agency, Resource, Version]",
+                "description": "Structure queries allow **retrieving structural metadata**.\n\nStructure queries in SDMX allow you to retrieve structural metadata at various levels of granularity, from all structural metadata available in the source to a single code from a particular version of a particular codelist maintained by a particular agency.\n",
+                "operationId": "get-structuretype-agencyid-resourceid-version",
+                "parameters": [
+                    {
+                        "name": "structureType",
+                        "in": "path",
+                        "description": "The type of structural metadata (e.g. codelist, dataflow, etc.)",
+                        "required": true,
+                        "schema": {
+                            "enum": [
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "conceptscheme",
+                                "datastructure",
+                                "dataflow",
+                                "categoryscheme",
+                                "categorisation",
+                                "structuremap",
+                                "representationmap"
+                            ],
+                            "type": "string",
+                            "default": "dataflow"
+                        },
+                        "example": "dataflow"
+                    },
+                    {
+                        "name": "agencyID",
+                        "in": "path",
+                        "description": "The agency maintaining the artefact to be returned. \n\nIt is possible to set more than one agency, using `+` as separator (e.g. IMF.STA+IMF.RES).\n\nThe keyword `all` can be used to indicate that artefacts maintained by any maintenance agency should be returned.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "IMF.STA"
+                        },
+                        "example": "IMF.STA"
+                    },
+                    {
+                        "name": "resourceID",
+                        "in": "path",
+                        "description": "The id of the artefact to be returned.\n\nIt is possible to set more than one id, using `+` as separator (e.g. CL_FREQ+CL_CONF_STATUS).\n\nThe keyword `all` can be used to indicate that any artefact of the specified resource type, {agencyID} and {version} should be returned. \n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "CPI"
+                        },
+                        "example": "CPI"
+                    },
+                    {
+                        "name": "version",
+                        "in": "path",
+                        "description": "The version of the artefact to be returned. \n\nIt is possible to set more than one version, using `+` as separator (e.g. 1.0+2.1).\n\nThe keyword `all` can be used to return all versions of the matching resource.\n\nThe keyword `latest` can be used to return the latest production version of the matching resource.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "latest"
+                        },
+                        "example": "latest"
+                    },
+                    {
+                        "name": "references",
+                        "in": "query",
+                        "description": "Instructs the web service to return (or not) the artefacts referenced by the artefact to be returned.\n\nPossible values are: \n\n* `none`: No references will be returned\n* `parents`: Returns the artefacts that use the artefact matching the query\n* `parentsandsiblings`: Returns the artefacts that use the artefact matching the query, as well as the artefacts referenced by these artefacts\n* `children`: Returns the artefacts referenced by the artefact to be returned\n* `descendants`: References of references, up to any level, will be returned\n* `all`: The combination of parentsandsiblings and descendants\n* In addition, a concrete type of resource may also be used (for example, references=codelist).\n",
+                        "schema": {
+                            "enum": [
+                                "none",
+                                "parents",
+                                "parentsandsiblings",
+                                "children",
+                                "descendants",
+                                "all",
+                                "datastructure",
+                                "metadatastructure",
+                                "categoryscheme",
+                                "conceptscheme",
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "organisationscheme",
+                                "agencyscheme",
+                                "dataproviderscheme",
+                                "dataconsumerscheme",
+                                "organisationunitscheme",
+                                "dataflow",
+                                "metadataflow",
+                                "reportingtaxonomy",
+                                "provisionagreement",
+                                "structureset",
+                                "process",
+                                "categorisation",
+                                "contentconstraint",
+                                "actualconstraint",
+                                "allowedconstraint",
+                                "attachmentconstraint",
+                                "transformationscheme",
+                                "rulesetscheme",
+                                "userdefinedoperatorscheme",
+                                "customtypescheme",
+                                "namepersonalisationscheme",
+                                "namealiasscheme"
+                            ],
+                            "type": "string",
+                            "default": "none"
+                        },
+                        "example": "none"
+                    },
+                    {
+                        "name": "detail",
+                        "in": "query",
+                        "description": "The amount of information to be returned. \n\nPossible values are: \n\n* `allstubs`: All artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencestubs`: Referenced artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencepartial`: Referenced item schemes should only include items used by the artefact to be returned. For example, a concept scheme would only contain the concepts used in a DSD, and its isPartial flag would be set to `true`\n* `allcompletestubs`: All artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `referencecompletestubs`: Referenced artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `full`: All available information for all artefacts should be returned\n",
+                        "schema": {
+                            "enum": [
+                                "allstubs",
+                                "referencestubs",
+                                "referencepartial",
+                                "allcompletestubs",
+                                "referencecompletestubs",
+                                "full"
+                            ],
+                            "type": "string",
+                            "default": "referencestubs"
+                        },
+                        "example": "referencestubs"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "Specifies the output format. \n\nPossible values are: \n\n* `application/xml`: Indicates that output format is a XML. Default value\n* `application/json`: Indicates that output format is a JSON.\n",
+                        "schema": {
+                            "enum": [
+                                "application/json",
+                                "application/xml"
+                            ],
+                            "type": "string",
+                            "default": "application/xml"
+                        },
+                        "example": "application/xml"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "data": {
+                                        "codelists": [
+                                            {
+                                                "agencyID": "IMF",
+                                                "annotations": [],
+                                                "codes": [
+                                                    {
+                                                        "annotations": [],
+                                                        "id": "01R",
+                                                        "links": [
+                                                            {
+                                                                "rel": "self",
+                                                                "type": "code",
+                                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                            }
+                                                        ],
+                                                        "name": "Exchange Rates and International Reserves",
+                                                        "names": {
+                                                            "en": "Exchange Rates and International Reserves"
+                                                        },
+                                                        "parent": null,
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                    }
+                                                ],
+                                                "id": "CL_DATADOMAIN",
+                                                "isPartial": false,
+                                                "links": [
+                                                    {
+                                                        "rel": "self",
+                                                        "type": "codelist",
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)"
+                                                    }
+                                                ],
+                                                "name": "Data Domain",
+                                                "names": {
+                                                    "en": "Data Domain"
+                                                },
+                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)",
+                                                "version": "1.0"
+                                            }
+                                        ]
+                                    },
+                                    "meta": {
+                                        "content-languages": [
+                                            "en"
+                                        ],
+                                        "id": "IDREF17",
+                                        "prepared": "2023-08-16T12:43:04.0000000+00:00",
+                                        "receiver": [
+                                            {
+                                                "id": "Unknown"
+                                            }
+                                        ],
+                                        "schema": "https://raw.githubusercontent.com/sdmx-twg/sdmx-json/develop/structure-message/tools/schemas/1.0/sdmx-json-structure-schema.json",
+                                        "sender": {
+                                            "id": "unknown"
+                                        },
+                                        "test": false
+                                    }
+                                }
+                            },
+                            "application/xml": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <mes:Structure xsi:schemaLocation=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message ../../schemas/SDMXMessage.xsd\" xmlns:mes=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:str=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure\" xmlns:com=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\"> <mes:Header> <mes:ID>IDREF103</mes:ID> <mes:Test>false</mes:Test> <mes:Prepared>2023-08-17T09:37:50.173Z</mes:Prepared> <mes:Sender id=\"unknown\"/> <mes:Receiver id=\"Unknown\"/> </mes:Header> <mes:Structures> <str:Codelists> <str:Codelist id=\"CL_DATADOMAIN\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)\" agencyID=\"IMF\" version=\"1.0\"> <com:Name xml:lang=\"en\">Data Domain</com:Name> <str:Code id=\"01R\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R\"> <com:Name xml:lang=\"en\">Exchange Rates and International Reserves</com:Name> </str:Code> </str:Codelist> </str:Codelists> </mes:Structures> </mes:Structure>"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/availableconstraint/{flowRef}/{key}/{providerRef}/{componentID}": {
+            "get": {
+                "tags": [
+                    "Data availability queries"
+                ],
+                "summary": "Data Availability Query [Flow Ref, Key, Provider Ref, Component ID]",
+                "description": "See which data would match a query, without actually retrieving these data.\n\nThis can be used, for example, to build a data query form that enables users of the UI to create a data query by selecting dimension values. \nFor example the user is able to click 'Reporting Country' and then select the codes 'United Kingdom', 'Greece', and 'Switzerland'.\n\nThe query returns a `Constraint`, i.e. structural metadata, and is therefore similar to the other structural metadata queries but \nthe query itself is more akin to a data query.\n",
+                "operationId": "get-availableconstraint-flowref-key-providerref-componentid",
+                "parameters": [
+                    {
+                        "name": "flowRef",
+                        "in": "path",
+                        "description": "The **statistical domain** (aka dataflow) of the data to be returned.\n\nExamples:\n\n* `IMF.STA`: The agencyID of the domain\n* `IMF.STA,CPI`: The CPI domain, maintained by the IMF.STA\n* `IMF.STA,CPI,1.2`: Version 1.2 of the CPI domain, maintained by the IMF.STA\n* `IMF.STA,CPI,latest`: Latest version of the CPI domain, maintained by the IMF.STA\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "IMF.STA,CPI"
+                        },
+                        "example": "IMF.STA,CPI"
+                    },
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "description": "The (possibly partial) **key identifying the data to be returned**. \n\nThe keyword `all` can be used to indicate that all data belonging to the specified dataflow and provided by the specified provider must be returned.\n\nThe examples below are based on the following key: Country, Index Type, Expenditure Category, Type of Transformation, Frequency.\n * `USA.CPI.CP01.IX.M`: Full key, matching exactly one series, i.e. the index (`IX`) for annual (`A`) consumer price index (`CPI`) for Food and non-alcoholic beverages (`CP01`) in the United States (`USA`).\n * `USA.CPI.CP01.IX.A+M`: Retrieves both annual and monthly data (`A+M`), matching exactly two series\n * `USA.CPI..IX.A+M`: The third dimension is wildcarded, and it will therefore match the annual and monthly rates for all categories of CPI in the United States.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "USA....A"
+                        },
+                        "example": "USA....A"
+                    },
+                    {
+                        "name": "providerRef",
+                        "in": "path",
+                        "description": "The **provider of the data** to be retrieved. \n\nThe keyword `all` can be used to indicate that all data matching the supplied key and belonging to the specified dataflow and provided by any data provider must be returned.\n\nExamples:\n\n* `ECB`: Data provided by ECB\n* `CH2+NO2`: Data provided by CH2 or NO2\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "all"
+                        },
+                        "example": "all"
+                    },
+                    {
+                        "name": "componentID",
+                        "in": "path",
+                        "description": "The id of the Dimension for which to obtain availability information about. \n\nUse `all`` to indicate that data availability should be provided for all dimensions.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "TYPE_OF_TRANSFORMATION"
+                        },
+                        "example": "TYPE_OF_TRANSFORMATION"
+                    },
+                    {
+                        "name": "startPeriod",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The start of the period for which results should be supplied (inclusive).\n\nCan be expressed using 8601 dates or SDMX reporting periods. \n\nExamples:\n* `2000`: Year (ISO 8601)\n* `2000-01`: Month (ISO 8601)\n* `2000-01-01`: Date (ISO 8601)\n* `2000-Q1`: Quarter (SDMX)\n* `2000-W01`: Week (SDMX)\n",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "endPeriod",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The end of the period for which results should be supplied (inclusive).\n\nCan be expressed using 8601 dates or SDMX reporting periods. \n\nExamples:\n* `2000`: Year (ISO 8601)\n* `2000-01`: Month (ISO 8601)\n* `2000-01-01`: Date (ISO 8601)\n* `2000-S1`: Semester (SDMX)\n* `2000-D001`: Day (SDMX)\n",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "updatedAfter",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The last time the query was performed by the client. \n\nThe response should include the latest version of what has changed in the database since that point in time (i.e. additions, revisions or deletions since the last time the query was performed).\n",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "mode",
+                        "in": "query",
+                        "description": "Instructs the web service to return a ContentConstraint which defines a Cube Region containing values which will be returned by executing the query (`exact`) vs a Cube Region showing what values remain valid selections that could be added to the data query (`available`).\n",
+                        "schema": {
+                            "enum": [
+                                "exact",
+                                "available"
+                            ],
+                            "type": "string",
+                            "default": "exact"
+                        },
+                        "example": "exact"
+                    },
+                    {
+                        "name": "references",
+                        "in": "query",
+                        "description": "Instructs the web service to return (or not) the artefacts referenced by the ContentConstraint to be returned.\n",
+                        "schema": {
+                            "enum": [
+                                "none",
+                                "all",
+                                "datastructure",
+                                "conceptscheme",
+                                "codelist",
+                                "dataproviderscheme",
+                                "dataflow"
+                            ],
+                            "type": "string",
+                            "default": "none"
+                        },
+                        "example": "none"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "data": {
+                                        "contentConstraints": [
+                                            {
+                                                "agencyID": "QUANTHUB",
+                                                "annotations": [
+                                                    {
+                                                        "id": "series_count",
+                                                        "title": "397820",
+                                                        "type": "sdmx_metrics"
+                                                    }
+                                                ],
+                                                "constraintAttachment": {
+                                                    "dataStructures": [
+                                                        "urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=QUANTHUB:ECOFIN_DSD(1.2)"
+                                                    ]
+                                                },
+                                                "cubeRegions": [
+                                                    {
+                                                        "isIncluded": true,
+                                                        "keyValues": [
+                                                            {
+                                                                "id": "REF_AREA",
+                                                                "values": [
+                                                                    "111",
+                                                                    "112"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ],
+                                                "description": "Data Availability Constraint",
+                                                "descriptions": {
+                                                    "en": "Data Availability Constraint"
+                                                },
+                                                "id": "BOP6",
+                                                "links": [
+                                                    {
+                                                        "rel": "self",
+                                                        "type": "contentconstraint",
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.registry.ContentConstraint=QUANTHUB:BOP6(1.2)"
+                                                    },
+                                                    {
+                                                        "rel": "structure",
+                                                        "type": "datastructure",
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=QUANTHUB:ECOFIN_DSD(1.2)"
+                                                    }
+                                                ],
+                                                "name": "Data Constraint",
+                                                "names": {
+                                                    "en": "Data Constraint"
+                                                },
+                                                "type": "Actual",
+                                                "urn": "urn:sdmx:org.sdmx.infomodel.registry.ContentConstraint=QUANTHUB:BOP6(1.2)",
+                                                "version": "2023-01-02"
+                                            }
+                                        ]
+                                    },
+                                    "meta": {
+                                        "content-languages": [
+                                            "en"
+                                        ],
+                                        "id": "IDREF105",
+                                        "prepared": "2023-08-17T10:02:55.0000000+00:00",
+                                        "receiver": [
+                                            {
+                                                "id": "Unknown"
+                                            }
+                                        ],
+                                        "schema": "https://raw.githubusercontent.com/sdmx-twg/sdmx-json/develop/structure-message/tools/schemas/1.0/sdmx-json-structure-schema.json",
+                                        "sender": {
+                                            "id": "unknown"
+                                        },
+                                        "test": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/data/{flowRef}/{key}/{providerRef}": {
+            "get": {
+                "tags": [
+                    "Data queries"
+                ],
+                "summary": "Data Query [Flow, Key, Provider]",
+                "description": "Data queries allow **retrieving statistical data**. \n\nEntire datasets can be retrieved or individual observations, or anything in between, using filters on dimensions (including time), attributes and/or measures. \n\nAll data matching a query can be retrieved or only the data that has changed since the last time the same query was performed. \n\nUsing the _includeHistory_ parameter, it is also possible to retrieve previous versions of the data. \n\nLast but not least, the data retrieved can be packaged in different ways (as time series, cross-sections or as a table), in a variety of formats (JSON, XML, CSV, etc.).\n",
+                "operationId": "get-data-flowref-key-providerref",
+                "parameters": [
+                    {
+                        "name": "flowRef",
+                        "in": "path",
+                        "description": "The **statistical domain** (aka dataflow) of the data to be returned.\n\nExamples:\n\n* `IMF.STA`: The agencyID of the domain\n* `IMF.STA,CPI`: The CPI domain, maintained by the IMF.STA\n* `IMF.STA,CPI,1.2`: Version 1.2 of the CPI domain, maintained by the IMF.STA\n* `IMF.STA,CPI,latest`: Latest version of the CPI domain, maintained by the IMF.STA\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "IMF.STA,CPI"
+                        },
+                        "example": "IMF.STA,CPI"
+                    },
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "description": "The (possibly partial) **key identifying the data to be returned**. \n\nThe keyword `all` can be used to indicate that all data belonging to the specified dataflow and provided by the specified provider must be returned.\n\nThe examples below are based on the following key: Country, Index Type, Expenditure Category, Type of Transformation, Frequency.\n * `USA.CPI.CP01.IX.M`: Full key, matching exactly one series, i.e. the index (`IX`) for annual (`A`) consumer price index (`CPI`) for Food and non-alcoholic beverages (`CP01`) in the United States (`USA`).\n * `USA.CPI.CP01.IX.A+M`: Retrieves both annual and monthly data (`A+M`), matching exactly two series\n * `USA.CPI..IX.A+M`: The third dimension is wildcarded, and it will therefore match the annual and monthly rates for all categories of CPI in the United States.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "USA.CPI.CP01.IX.A"
+                        },
+                        "example": "USA.CPI.CP01.IX.A"
+                    },
+                    {
+                        "name": "providerRef",
+                        "in": "path",
+                        "description": "The **provider of the data** to be retrieved. \n\nThe keyword `all` can be used to indicate that all data matching the supplied key and belonging to the specified dataflow and provided by any data provider must be returned.\n\nExamples:\n\n* `ECB`: Data provided by ECB\n* `CH2+NO2`: Data provided by CH2 or NO2\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "all"
+                        },
+                        "example": "all"
+                    },
+                    {
+                        "name": "startPeriod",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The start of the period for which results should be supplied (inclusive).\n\nCan be expressed using 8601 dates or SDMX reporting periods. \n\nExamples:\n* `2000`: Year (ISO 8601)\n* `2000-01`: Month (ISO 8601)\n* `2000-01-01`: Date (ISO 8601)\n* `2000-Q1`: Quarter (SDMX)\n* `2000-W01`: Week (SDMX)\n",
+                        "schema": {
+                            "type": "string",
+                            "default": "2015"
+                        },
+                        "example": 2015
+                    },
+                    {
+                        "name": "endPeriod",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The end of the period for which results should be supplied (inclusive).\n\nCan be expressed using 8601 dates or SDMX reporting periods. \n\nExamples:\n* `2000`: Year (ISO 8601)\n* `2000-01`: Month (ISO 8601)\n* `2000-01-01`: Date (ISO 8601)\n* `2000-S1`: Semester (SDMX)\n* `2000-D001`: Day (SDMX)\n",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "updatedAfter",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The last time the query was performed by the client. \n\nThe response should include the latest version of what has changed in the database since that point in time (i.e. additions, revisions or deletions since the last time the query was performed).\n",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "firstNObservations",
+                        "in": "query",
+                        "description": "The maximum number of observations to be returned starting from the oldest one.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "lastNObservations",
+                        "in": "query",
+                        "description": "The maximum number of observations to be returned starting from the most recent one",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "dimensionAtObservation",
+                        "in": "query",
+                        "description": "This parameter allows the client to indicate how the data should be packaged by the service.\n\nThe options are:\n* For datasets **with** time dimension:\n    * `TIME_PERIOD`: A timeseries view\n    * `AllDimensions`: A flat view of the data.\n* For datasets **without** time dimension:\n    * `AllDimensions`: A flat view of the data.\n    * The ID of any dimension: A cross-sectional view of the data.\n",
+                        "schema": {
+                            "type": "string",
+                            "default": "TIME_PERIOD"
+                        },
+                        "example": "TIME_PERIOD"
+                    },
+                    {
+                        "name": "detail",
+                        "in": "query",
+                        "description": "The **amount of information** to be returned. \n\nPossible options are: \n\n* `full`: All data and documentation\n* `dataonly`: Everything except attributes\n* `serieskeysonly`: The series keys. This is useful to return the series that match a certain query, without returning the actual data (e.g. overview page)\n* `nodata`: The series, including attributes and annotations, without observations.\n",
+                        "schema": {
+                            "enum": [
+                                "full",
+                                "dataonly",
+                                "serieskeysonly",
+                                "nodata"
+                            ],
+                            "type": "string",
+                            "default": "dataonly"
+                        },
+                        "example": "dataonly"
+                    },
+                    {
+                        "name": "includeHistory",
+                        "in": "query",
+                        "description": "Retrieve **previous versions of the data**. \n\nWhen `true`, the response will contain up to two datasets per dissemination, one containing new or updated values and one containing the deleted data (if any). \n",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "example": "False"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "Specifies the output format. \n\nPossible values are: \n\n* `application/xml`: Indicates that output format is a XML. Default value\n* `application/json`: Indicates that output format is a JSON.\n",
+                        "schema": {
+                            "enum": [
+                                "application/json",
+                                "application/xml"
+                            ],
+                            "type": "string",
+                            "default": "application/xml"
+                        },
+                        "example": "application/xml"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "dataSets": [
+                                        {
+                                            "action": "Information",
+                                            "series": {
+                                                "0:0:0:0:0": {
+                                                    "attributes": [
+                                                        null,
+                                                        null,
+                                                        null
+                                                    ],
+                                                    "observations": {
+                                                        "0": [
+                                                            "-453897000000"
+                                                        ],
+                                                        "1": [
+                                                            "-486472000000"
+                                                        ],
+                                                        "2": [
+                                                            "nan"
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    "header": {
+                                        "id": "af4d79c9-e993-4f4b-a413-e5213b40b9c1",
+                                        "prepared": "2023-08-17T09:50:42.0000000+00:00",
+                                        "sender": {
+                                            "id": "unknown",
+                                            "name": "unknown"
+                                        },
+                                        "test": false
+                                    },
+                                    "structure": {
+                                        "attributes": {
+                                            "dataset": [
+                                                {
+                                                    "id": "COMMENT",
+                                                    "name": "Comment",
+                                                    "role": null,
+                                                    "values": []
+                                                }
+                                            ],
+                                            "observation": [
+                                                {
+                                                    "id": "OBS_STATUS",
+                                                    "name": "Observation status",
+                                                    "role": null,
+                                                    "values": []
+                                                }
+                                            ],
+                                            "series": [
+                                                {
+                                                    "id": "BASE_PER",
+                                                    "name": "Base Period",
+                                                    "role": null,
+                                                    "values": []
+                                                }
+                                            ]
+                                        },
+                                        "description": "Balance of Payments (BPM6) for Collection",
+                                        "dimensions": {
+                                            "dataset": [],
+                                            "observation": [
+                                                {
+                                                    "id": "TIME_PERIOD",
+                                                    "keyPosition": 5,
+                                                    "name": "Time period",
+                                                    "role": "time",
+                                                    "values": [
+                                                        {
+                                                            "end": "2018-12-31T11:59:59.0000000+00:00",
+                                                            "id": "2018",
+                                                            "name": "2018",
+                                                            "start": "2018-01-01T12:00:00.0000000+00:00"
+                                                        }
+                                                    ]
+                                                }
+                                            ],
+                                            "series": [
+                                                {
+                                                    "id": "DATA_DOMAIN",
+                                                    "keyPosition": 0,
+                                                    "name": "Data Domain",
+                                                    "role": null,
+                                                    "values": [
+                                                        {
+                                                            "id": "BOP6",
+                                                            "name": "Balance of Payments (BPM6)"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "name": "Balance of Payments (BPM6) for Collection"
+                                    }
+                                }
+                            },
+                            "application/xml": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <message:StructureSpecificData xmlns:ss=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/structurespecific\" xmlns:footer=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message/footer\" xmlns:ns1=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=QUANTHUB:BOP6(1.2):ObsLevelDim:TIME_PERIOD\" xmlns:message=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:common=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\"> <message:Header> <message:ID>DS1692266265767</message:ID> <message:Test>false</message:Test> <message:Prepared>2023-08-17T09:57:45</message:Prepared> <message:Sender id=\"MetadataTechnology\"/> <message:Structure structureID=\"QUANTHUB_BOP6_1_2\" namespace=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=QUANTHUB:BOP6(1.2):ObsLevelDim:TIME_PERIOD\" dimensionAtObservation=\"TIME_PERIOD\"> <common:StructureUsage> <Ref agencyID=\"QUANTHUB\" id=\"BOP6\" version=\"1.2\"/> </common:StructureUsage> </message:Structure> </message:Header> <message:DataSet ss:dataScope=\"DataStructure\" xsi:type=\"ns1:DataSetType\" ss:structureRef=\"QUANTHUB_BOP6_1_2\" action=\"Information\"> <Series DATA_DOMAIN=\"BOP6\" REF_AREA=\"111\" INDICATOR=\"BACK_BP6_USD\" COUNTERPART_AREA=\"W1\" FREQ=\"A\"> <Obs TIME_PERIOD=\"2018\" OBS_VALUE=\"-453897000000\"/> <Obs TIME_PERIOD=\"2019\" OBS_VALUE=\"-486472000000\"/> <Obs TIME_PERIOD=\"2020\" OBS_VALUE=\"nan\"/> </Series> </message:DataSet> </message:StructureSpecificData>"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/data/{flowRef}/{key}": {
+            "get": {
+                "tags": [
+                    "Data queries"
+                ],
+                "summary": "Data Query [Flow, Key]",
+                "description": "Data queries if no providerRef is specified. The matching data (or metadata) provided by any data provider should be returned. It is therefore equivalent to using the keyword \"all\".\n",
+                "operationId": "get-data-flowref-key",
+                "parameters": [
+                    {
+                        "name": "flowRef",
+                        "in": "path",
+                        "description": "The **statistical domain** (aka dataflow) of the data to be returned.\n\nExamples:\n\n* `IMF.STA`: The agencyID of the domain\n* `IMF.STA,CPI`: The CPI domain, maintained by the IMF.STA\n* `IMF.STA,CPI,1.2`: Version 1.2 of the CPI domain, maintained by the IMF.STA\n* `IMF.STA,CPI,latest`: Latest version of the CPI domain, maintained by the IMF.STA\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "IMF.STA,CPI"
+                        },
+                        "example": "IMF.STA,CPI"
+                    },
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "description": "The (possibly partial) **key identifying the data to be returned**. \n\nThe keyword `all` can be used to indicate that all data belonging to the specified dataflow and provided by the specified provider must be returned.\n\nThe examples below are based on the following key: Country, Index Type, Expenditure Category, Type of Transformation, Frequency.\n * `USA.CPI.CP01.IX.M`: Full key, matching exactly one series, i.e. the index (`IX`) for annual (`A`) consumer price index (`CPI`) for Food and non-alcoholic beverages (`CP01`) in the United States (`USA`).\n * `USA.CPI.CP01.IX.A+M`: Retrieves both annual and monthly data (`A+M`), matching exactly two series\n * `USA.CPI..IX.A+M`: The third dimension is wildcarded, and it will therefore match the annual and monthly rates for all categories of CPI in the United States.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "USA.CPI.CP01.IX.A"
+                        },
+                        "example": "USA.CPI.CP01.IX.A"
+                    },
+                    {
+                        "name": "startPeriod",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The start of the period for which results should be supplied (inclusive).\n\nCan be expressed using 8601 dates or SDMX reporting periods. \n\nExamples:\n* `2000`: Year (ISO 8601)\n* `2000-01`: Month (ISO 8601)\n* `2000-01-01`: Date (ISO 8601)\n* `2000-Q1`: Quarter (SDMX)\n* `2000-W01`: Week (SDMX)\n",
+                        "schema": {
+                            "type": "string",
+                            "default": "2015"
+                        },
+                        "example": 2015
+                    },
+                    {
+                        "name": "endPeriod",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The end of the period for which results should be supplied (inclusive).\n\nCan be expressed using 8601 dates or SDMX reporting periods. \n\nExamples:\n* `2000`: Year (ISO 8601)\n* `2000-01`: Month (ISO 8601)\n* `2000-01-01`: Date (ISO 8601)\n* `2000-S1`: Semester (SDMX)\n* `2000-D001`: Day (SDMX)\n",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "updatedAfter",
+                        "in": "query",
+                        "description": "Format - date-time (as date-time in RFC3339). The last time the query was performed by the client. \n\nThe response should include the latest version of what has changed in the database since that point in time (i.e. additions, revisions or deletions since the last time the query was performed).\n",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "firstNObservations",
+                        "in": "query",
+                        "description": "The maximum number of observations to be returned starting from the oldest one.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "lastNObservations",
+                        "in": "query",
+                        "description": "The maximum number of observations to be returned starting from the most recent one",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "dimensionAtObservation",
+                        "in": "query",
+                        "description": "This parameter allows the client to indicate how the data should be packaged by the service.\n\nThe options are:\n* For datasets **with** time dimension:\n    * `TIME_PERIOD`: A timeseries view\n    * `AllDimensions`: A flat view of the data.\n* For datasets **without** time dimension:\n    * `AllDimensions`: A flat view of the data.\n    * The ID of any dimension: A cross-sectional view of the data.\n",
+                        "schema": {
+                            "type": "string",
+                            "default": "TIME_PERIOD"
+                        },
+                        "example": "TIME_PERIOD"
+                    },
+                    {
+                        "name": "detail",
+                        "in": "query",
+                        "description": "The **amount of information** to be returned. \n\nPossible options are: \n\n* `full`: All data and documentation\n* `dataonly`: Everything except attributes\n* `serieskeysonly`: The series keys. This is useful to return the series that match a certain query, without returning the actual data (e.g. overview page)\n* `nodata`: The series, including attributes and annotations, without observations.\n",
+                        "schema": {
+                            "enum": [
+                                "full",
+                                "dataonly",
+                                "serieskeysonly",
+                                "nodata"
+                            ],
+                            "type": "string",
+                            "default": "dataonly"
+                        },
+                        "example": "dataonly"
+                    },
+                    {
+                        "name": "includeHistory",
+                        "in": "query",
+                        "description": "Retrieve **previous versions of the data**. \n\nWhen `true`, the response will contain up to two datasets per dissemination, one containing new or updated values and one containing the deleted data (if any). \n",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "example": "False"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "Specifies the output format. \n\nPossible values are: \n\n* `application/xml`: Indicates that output format is a XML. Default value\n* `application/json`: Indicates that output format is a JSON.\n",
+                        "schema": {
+                            "enum": [
+                                "application/json",
+                                "application/xml"
+                            ],
+                            "type": "string",
+                            "default": "application/xml"
+                        },
+                        "example": "application/xml"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "dataSets": [
+                                        {
+                                            "action": "Information",
+                                            "series": {
+                                                "0:0:0:0:0": {
+                                                    "attributes": [
+                                                        null,
+                                                        null,
+                                                        null
+                                                    ],
+                                                    "observations": {
+                                                        "0": [
+                                                            "-453897000000"
+                                                        ],
+                                                        "1": [
+                                                            "-486472000000"
+                                                        ],
+                                                        "2": [
+                                                            "nan"
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    "header": {
+                                        "id": "af4d79c9-e993-4f4b-a413-e5213b40b9c1",
+                                        "prepared": "2023-08-17T09:50:42.0000000+00:00",
+                                        "sender": {
+                                            "id": "unknown",
+                                            "name": "unknown"
+                                        },
+                                        "test": false
+                                    },
+                                    "structure": {
+                                        "attributes": {
+                                            "dataset": [
+                                                {
+                                                    "id": "COMMENT",
+                                                    "name": "Comment",
+                                                    "role": null,
+                                                    "values": []
+                                                }
+                                            ],
+                                            "observation": [
+                                                {
+                                                    "id": "OBS_STATUS",
+                                                    "name": "Observation status",
+                                                    "role": null,
+                                                    "values": []
+                                                }
+                                            ],
+                                            "series": [
+                                                {
+                                                    "id": "BASE_PER",
+                                                    "name": "Base Period",
+                                                    "role": null,
+                                                    "values": []
+                                                }
+                                            ]
+                                        },
+                                        "description": "Balance of Payments (BPM6) for Collection",
+                                        "dimensions": {
+                                            "dataset": [],
+                                            "observation": [
+                                                {
+                                                    "id": "TIME_PERIOD",
+                                                    "keyPosition": 5,
+                                                    "name": "Time period",
+                                                    "role": "time",
+                                                    "values": [
+                                                        {
+                                                            "end": "2018-12-31T11:59:59.0000000+00:00",
+                                                            "id": "2018",
+                                                            "name": "2018",
+                                                            "start": "2018-01-01T12:00:00.0000000+00:00"
+                                                        }
+                                                    ]
+                                                }
+                                            ],
+                                            "series": [
+                                                {
+                                                    "id": "DATA_DOMAIN",
+                                                    "keyPosition": 0,
+                                                    "name": "Data Domain",
+                                                    "role": null,
+                                                    "values": [
+                                                        {
+                                                            "id": "BOP6",
+                                                            "name": "Balance of Payments (BPM6)"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "name": "Balance of Payments (BPM6) for Collection"
+                                    }
+                                }
+                            },
+                            "application/xml": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <message:StructureSpecificData xmlns:ss=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/structurespecific\" xmlns:footer=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message/footer\" xmlns:ns1=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=QUANTHUB:BOP6(1.2):ObsLevelDim:TIME_PERIOD\" xmlns:message=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:common=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\"> <message:Header> <message:ID>DS1692266265767</message:ID> <message:Test>false</message:Test> <message:Prepared>2023-08-17T09:57:45</message:Prepared> <message:Sender id=\"MetadataTechnology\"/> <message:Structure structureID=\"QUANTHUB_BOP6_1_2\" namespace=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=QUANTHUB:BOP6(1.2):ObsLevelDim:TIME_PERIOD\" dimensionAtObservation=\"TIME_PERIOD\"> <common:StructureUsage> <Ref agencyID=\"QUANTHUB\" id=\"BOP6\" version=\"1.2\"/> </common:StructureUsage> </message:Structure> </message:Header> <message:DataSet ss:dataScope=\"DataStructure\" xsi:type=\"ns1:DataSetType\" ss:structureRef=\"QUANTHUB_BOP6_1_2\" action=\"Information\"> <Series DATA_DOMAIN=\"BOP6\" REF_AREA=\"111\" INDICATOR=\"BACK_BP6_USD\" COUNTERPART_AREA=\"W1\" FREQ=\"A\"> <Obs TIME_PERIOD=\"2018\" OBS_VALUE=\"-453897000000\"/> <Obs TIME_PERIOD=\"2019\" OBS_VALUE=\"-486472000000\"/> <Obs TIME_PERIOD=\"2020\" OBS_VALUE=\"nan\"/> </Series> </message:DataSet> </message:StructureSpecificData>"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/{structureType}/{agencyID}/{resourceID}/{version}/{itemID}": {
+            "get": {
+                "tags": [
+                    "Structure queries"
+                ],
+                "summary": "Structure Query [Structure Type, Agency, Resource, Version, Item]",
+                "description": "Item queries extend structure queries by allowing to retrieve items in item schemes such as particular codes in a codelist.\n",
+                "operationId": "get-structuretype-agencyid-resourceid-version-itemid",
+                "parameters": [
+                    {
+                        "name": "structureType",
+                        "in": "path",
+                        "description": "The type of structural metadata (e.g. codelist, dataflow, etc.)",
+                        "required": true,
+                        "schema": {
+                            "enum": [
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "conceptscheme",
+                                "datastructure",
+                                "dataflow",
+                                "categoryscheme",
+                                "categorisation",
+                                "structuremap",
+                                "representationmap"
+                            ],
+                            "type": "string",
+                            "default": "codelist"
+                        },
+                        "example": "codelist"
+                    },
+                    {
+                        "name": "agencyID",
+                        "in": "path",
+                        "description": "The agency maintaining the artefact to be returned. \n\nIt is possible to set more than one agency, using `+` as separator (e.g. IMF.STA+IMF.RES).\n\nThe keyword `all` can be used to indicate that artefacts maintained by any maintenance agency should be returned.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "IMF"
+                        },
+                        "example": "IMF"
+                    },
+                    {
+                        "name": "resourceID",
+                        "in": "path",
+                        "description": "The id of the artefact to be returned.\n\nIt is possible to set more than one id, using `+` as separator (e.g. CL_FREQ+CL_CONF_STATUS).\n\nThe keyword `all` can be used to indicate that any artefact of the specified resource type, {agencyID} and {version} should be returned. \n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "CL_COUTNRY"
+                        },
+                        "example": "CL_COUTNRY"
+                    },
+                    {
+                        "name": "version",
+                        "in": "path",
+                        "description": "The version of the artefact to be returned. \n\nIt is possible to set more than one version, using `+` as separator (e.g. 1.0+2.1).\n\nThe keyword `all` can be used to return all versions of the matching resource.\n\nThe keyword `latest` can be used to return the latest production version of the matching resource.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "latest"
+                        },
+                        "example": "latest"
+                    },
+                    {
+                        "name": "itemID",
+                        "in": "path",
+                        "description": "The id of the item to be returned. \n\nIt is possible to set more than one id, using `+` as separator (e.g. A+Q+M).\n\nThe keyword `all` can be used to return all items of the matching resource.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "USA"
+                        },
+                        "example": "USA"
+                    },
+                    {
+                        "name": "references",
+                        "in": "query",
+                        "description": "Instructs the web service to return (or not) the artefacts referenced by the artefact to be returned.\n\nPossible values are: \n\n* `none`: No references will be returned\n* `parents`: Returns the artefacts that use the artefact matching the query\n* `parentsandsiblings`: Returns the artefacts that use the artefact matching the query, as well as the artefacts referenced by these artefacts\n* `children`: Returns the artefacts referenced by the artefact to be returned\n* `descendants`: References of references, up to any level, will be returned\n* `all`: The combination of parentsandsiblings and descendants\n* In addition, a concrete type of resource may also be used (for example, references=codelist).\n",
+                        "schema": {
+                            "enum": [
+                                "none",
+                                "parents",
+                                "parentsandsiblings",
+                                "children",
+                                "descendants",
+                                "all",
+                                "datastructure",
+                                "metadatastructure",
+                                "categoryscheme",
+                                "conceptscheme",
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "organisationscheme",
+                                "agencyscheme",
+                                "dataproviderscheme",
+                                "dataconsumerscheme",
+                                "organisationunitscheme",
+                                "dataflow",
+                                "metadataflow",
+                                "reportingtaxonomy",
+                                "provisionagreement",
+                                "structureset",
+                                "process",
+                                "categorisation",
+                                "contentconstraint",
+                                "actualconstraint",
+                                "allowedconstraint",
+                                "attachmentconstraint",
+                                "transformationscheme",
+                                "rulesetscheme",
+                                "userdefinedoperatorscheme",
+                                "customtypescheme",
+                                "namepersonalisationscheme",
+                                "namealiasscheme"
+                            ],
+                            "type": "string",
+                            "default": "none"
+                        },
+                        "example": "none"
+                    },
+                    {
+                        "name": "detail",
+                        "in": "query",
+                        "description": "The amount of information to be returned. \n\nPossible values are: \n\n* `allstubs`: All artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencestubs`: Referenced artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencepartial`: Referenced item schemes should only include items used by the artefact to be returned. For example, a concept scheme would only contain the concepts used in a DSD, and its isPartial flag would be set to `true`\n* `allcompletestubs`: All artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `referencecompletestubs`: Referenced artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `full`: All available information for all artefacts should be returned\n",
+                        "schema": {
+                            "enum": [
+                                "allstubs",
+                                "referencestubs",
+                                "referencepartial",
+                                "allcompletestubs",
+                                "referencecompletestubs",
+                                "full"
+                            ],
+                            "type": "string",
+                            "default": "referencestubs"
+                        },
+                        "example": "referencestubs"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "Specifies the output format. \n\nPossible values are: \n\n* `application/xml`: Indicates that output format is a XML. Default value\n* `application/json`: Indicates that output format is a JSON.\n",
+                        "schema": {
+                            "enum": [
+                                "application/json",
+                                "application/xml"
+                            ],
+                            "type": "string",
+                            "default": "application/xml"
+                        },
+                        "example": "application/xml"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "data": {
+                                        "codelists": [
+                                            {
+                                                "agencyID": "IMF",
+                                                "annotations": [],
+                                                "codes": [
+                                                    {
+                                                        "annotations": [],
+                                                        "id": "01R",
+                                                        "links": [
+                                                            {
+                                                                "rel": "self",
+                                                                "type": "code",
+                                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                            }
+                                                        ],
+                                                        "name": "Exchange Rates and International Reserves",
+                                                        "names": {
+                                                            "en": "Exchange Rates and International Reserves"
+                                                        },
+                                                        "parent": null,
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                    }
+                                                ],
+                                                "id": "CL_DATADOMAIN",
+                                                "isPartial": false,
+                                                "links": [
+                                                    {
+                                                        "rel": "self",
+                                                        "type": "codelist",
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)"
+                                                    }
+                                                ],
+                                                "name": "Data Domain",
+                                                "names": {
+                                                    "en": "Data Domain"
+                                                },
+                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)",
+                                                "version": "1.0"
+                                            }
+                                        ]
+                                    },
+                                    "meta": {
+                                        "content-languages": [
+                                            "en"
+                                        ],
+                                        "id": "IDREF17",
+                                        "prepared": "2023-08-16T12:43:04.0000000+00:00",
+                                        "receiver": [
+                                            {
+                                                "id": "Unknown"
+                                            }
+                                        ],
+                                        "schema": "https://raw.githubusercontent.com/sdmx-twg/sdmx-json/develop/structure-message/tools/schemas/1.0/sdmx-json-structure-schema.json",
+                                        "sender": {
+                                            "id": "unknown"
+                                        },
+                                        "test": false
+                                    }
+                                }
+                            },
+                            "application/xml": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <mes:Structure xsi:schemaLocation=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message ../../schemas/SDMXMessage.xsd\" xmlns:mes=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:str=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure\" xmlns:com=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\"> <mes:Header> <mes:ID>IDREF103</mes:ID> <mes:Test>false</mes:Test> <mes:Prepared>2023-08-17T09:37:50.173Z</mes:Prepared> <mes:Sender id=\"unknown\"/> <mes:Receiver id=\"Unknown\"/> </mes:Header> <mes:Structures> <str:Codelists> <str:Codelist id=\"CL_DATADOMAIN\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)\" agencyID=\"IMF\" version=\"1.0\"> <com:Name xml:lang=\"en\">Data Domain</com:Name> <str:Code id=\"01R\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R\"> <com:Name xml:lang=\"en\">Exchange Rates and International Reserves</com:Name> </str:Code> </str:Codelist> </str:Codelists> </mes:Structures> </mes:Structure>"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/{structureType}/{agencyID}/{resourceID}": {
+            "get": {
+                "tags": [
+                    "Structure queries"
+                ],
+                "summary": "Structure Query [Structure Type, Agency, Resource]",
+                "description": "Structure queries when no version is specified. The version currently used in production should be returned. It is therefore equivalent to using the keyword “latest”\n",
+                "operationId": "get-structuretype-agencyid-resourceid",
+                "parameters": [
+                    {
+                        "name": "structureType",
+                        "in": "path",
+                        "description": "The type of structural metadata (e.g. codelist, dataflow, etc.)",
+                        "required": true,
+                        "schema": {
+                            "enum": [
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "conceptscheme",
+                                "datastructure",
+                                "dataflow",
+                                "categoryscheme",
+                                "categorisation",
+                                "structuremap",
+                                "representationmap"
+                            ],
+                            "type": "string",
+                            "default": "dataflow"
+                        },
+                        "example": "dataflow"
+                    },
+                    {
+                        "name": "agencyID",
+                        "in": "path",
+                        "description": "The agency maintaining the artefact to be returned. \n\nIt is possible to set more than one agency, using `+` as separator (e.g. IMF.STA+IMF.RES).\n\nThe keyword `all` can be used to indicate that artefacts maintained by any maintenance agency should be returned.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "IMF.STA"
+                        },
+                        "example": "IMF.STA"
+                    },
+                    {
+                        "name": "resourceID",
+                        "in": "path",
+                        "description": "The id of the artefact to be returned.\n\nIt is possible to set more than one id, using `+` as separator (e.g. CL_FREQ+CL_CONF_STATUS).\n\nThe keyword `all` can be used to indicate that any artefact of the specified resource type and {agencyID} should be returned. \n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "CPI"
+                        },
+                        "example": "CPI"
+                    },
+                    {
+                        "name": "references",
+                        "in": "query",
+                        "description": "Instructs the web service to return (or not) the artefacts referenced by the artefact to be returned.\n\nPossible values are: \n\n* `none`: No references will be returned\n* `parents`: Returns the artefacts that use the artefact matching the query\n* `parentsandsiblings`: Returns the artefacts that use the artefact matching the query, as well as the artefacts referenced by these artefacts\n* `children`: Returns the artefacts referenced by the artefact to be returned\n* `descendants`: References of references, up to any level, will be returned\n* `all`: The combination of parentsandsiblings and descendants\n* In addition, a concrete type of resource may also be used (for example, references=codelist).\n",
+                        "schema": {
+                            "enum": [
+                                "none",
+                                "parents",
+                                "parentsandsiblings",
+                                "children",
+                                "descendants",
+                                "all",
+                                "datastructure",
+                                "metadatastructure",
+                                "categoryscheme",
+                                "conceptscheme",
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "organisationscheme",
+                                "agencyscheme",
+                                "dataproviderscheme",
+                                "dataconsumerscheme",
+                                "organisationunitscheme",
+                                "dataflow",
+                                "metadataflow",
+                                "reportingtaxonomy",
+                                "provisionagreement",
+                                "structureset",
+                                "process",
+                                "categorisation",
+                                "contentconstraint",
+                                "actualconstraint",
+                                "allowedconstraint",
+                                "attachmentconstraint",
+                                "transformationscheme",
+                                "rulesetscheme",
+                                "userdefinedoperatorscheme",
+                                "customtypescheme",
+                                "namepersonalisationscheme",
+                                "namealiasscheme"
+                            ],
+                            "type": "string",
+                            "default": "none"
+                        },
+                        "example": "none"
+                    },
+                    {
+                        "name": "detail",
+                        "in": "query",
+                        "description": "The amount of information to be returned. \n\nPossible values are: \n\n* `allstubs`: All artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencestubs`: Referenced artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencepartial`: Referenced item schemes should only include items used by the artefact to be returned. For example, a concept scheme would only contain the concepts used in a DSD, and its isPartial flag would be set to `true`\n* `allcompletestubs`: All artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `referencecompletestubs`: Referenced artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `full`: All available information for all artefacts should be returned\n",
+                        "schema": {
+                            "enum": [
+                                "allstubs",
+                                "referencestubs",
+                                "referencepartial",
+                                "allcompletestubs",
+                                "referencecompletestubs",
+                                "full"
+                            ],
+                            "type": "string",
+                            "default": "referencestubs"
+                        },
+                        "example": "referencestubs"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "Specifies the output format. \n\nPossible values are: \n\n* `application/xml`: Indicates that output format is a XML. Default value\n* `application/json`: Indicates that output format is a JSON.\n",
+                        "schema": {
+                            "enum": [
+                                "application/json",
+                                "application/xml"
+                            ],
+                            "type": "string",
+                            "default": "application/xml"
+                        },
+                        "example": "application/xml"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "data": {
+                                        "codelists": [
+                                            {
+                                                "agencyID": "IMF",
+                                                "annotations": [],
+                                                "codes": [
+                                                    {
+                                                        "annotations": [],
+                                                        "id": "01R",
+                                                        "links": [
+                                                            {
+                                                                "rel": "self",
+                                                                "type": "code",
+                                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                            }
+                                                        ],
+                                                        "name": "Exchange Rates and International Reserves",
+                                                        "names": {
+                                                            "en": "Exchange Rates and International Reserves"
+                                                        },
+                                                        "parent": null,
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                    }
+                                                ],
+                                                "id": "CL_DATADOMAIN",
+                                                "isPartial": false,
+                                                "links": [
+                                                    {
+                                                        "rel": "self",
+                                                        "type": "codelist",
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)"
+                                                    }
+                                                ],
+                                                "name": "Data Domain",
+                                                "names": {
+                                                    "en": "Data Domain"
+                                                },
+                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)",
+                                                "version": "1.0"
+                                            }
+                                        ]
+                                    },
+                                    "meta": {
+                                        "content-languages": [
+                                            "en"
+                                        ],
+                                        "id": "IDREF17",
+                                        "prepared": "2023-08-16T12:43:04.0000000+00:00",
+                                        "receiver": [
+                                            {
+                                                "id": "Unknown"
+                                            }
+                                        ],
+                                        "schema": "https://raw.githubusercontent.com/sdmx-twg/sdmx-json/develop/structure-message/tools/schemas/1.0/sdmx-json-structure-schema.json",
+                                        "sender": {
+                                            "id": "unknown"
+                                        },
+                                        "test": false
+                                    }
+                                }
+                            },
+                            "application/xml": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <mes:Structure xsi:schemaLocation=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message ../../schemas/SDMXMessage.xsd\" xmlns:mes=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:str=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure\" xmlns:com=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\"> <mes:Header> <mes:ID>IDREF103</mes:ID> <mes:Test>false</mes:Test> <mes:Prepared>2023-08-17T09:37:50.173Z</mes:Prepared> <mes:Sender id=\"unknown\"/> <mes:Receiver id=\"Unknown\"/> </mes:Header> <mes:Structures> <str:Codelists> <str:Codelist id=\"CL_DATADOMAIN\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)\" agencyID=\"IMF\" version=\"1.0\"> <com:Name xml:lang=\"en\">Data Domain</com:Name> <str:Code id=\"01R\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R\"> <com:Name xml:lang=\"en\">Exchange Rates and International Reserves</com:Name> </str:Code> </str:Codelist> </str:Codelists> </mes:Structures> </mes:Structure>"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/{structureType}/{agencyID}": {
+            "get": {
+                "tags": [
+                    "Structure queries"
+                ],
+                "summary": "Structure Query [Structure Type, Agency]",
+                "description": "Structure queries when the “latest” version of “all” resources of the type identified by the resource parameter will be returned.\n",
+                "operationId": "get-structuretype-agencyid",
+                "parameters": [
+                    {
+                        "name": "structureType",
+                        "in": "path",
+                        "description": "The type of structural metadata (e.g. codelist, dataflow, etc.)",
+                        "required": true,
+                        "schema": {
+                            "enum": [
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "conceptscheme",
+                                "datastructure",
+                                "dataflow",
+                                "categoryscheme",
+                                "categorisation",
+                                "structuremap",
+                                "representationmap"
+                            ],
+                            "type": "string",
+                            "default": "dataflow"
+                        },
+                        "example": "dataflow"
+                    },
+                    {
+                        "name": "agencyID",
+                        "in": "path",
+                        "description": "The agency maintaining the artefact to be returned. \n\nIt is possible to set more than one agency, using `+` as separator (e.g. IMF.STA+IMF.RES).\n\nThe keyword `all` can be used to indicate that artefacts maintained by any maintenance agency should be returned.\n",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "default": "IMF.STA"
+                        },
+                        "example": "IMF.STA"
+                    },
+                    {
+                        "name": "references",
+                        "in": "query",
+                        "description": "Instructs the web service to return (or not) the artefacts referenced by the artefact to be returned.\n\nPossible values are: \n\n* `none`: No references will be returned\n* `parents`: Returns the artefacts that use the artefact matching the query\n* `parentsandsiblings`: Returns the artefacts that use the artefact matching the query, as well as the artefacts referenced by these artefacts\n* `children`: Returns the artefacts referenced by the artefact to be returned\n* `descendants`: References of references, up to any level, will be returned\n* `all`: The combination of parentsandsiblings and descendants\n* In addition, a concrete type of resource may also be used (for example, references=codelist).\n",
+                        "schema": {
+                            "enum": [
+                                "none",
+                                "parents",
+                                "parentsandsiblings",
+                                "children",
+                                "descendants",
+                                "all",
+                                "datastructure",
+                                "metadatastructure",
+                                "categoryscheme",
+                                "conceptscheme",
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "organisationscheme",
+                                "agencyscheme",
+                                "dataproviderscheme",
+                                "dataconsumerscheme",
+                                "organisationunitscheme",
+                                "dataflow",
+                                "metadataflow",
+                                "reportingtaxonomy",
+                                "provisionagreement",
+                                "structureset",
+                                "process",
+                                "categorisation",
+                                "contentconstraint",
+                                "actualconstraint",
+                                "allowedconstraint",
+                                "attachmentconstraint",
+                                "transformationscheme",
+                                "rulesetscheme",
+                                "userdefinedoperatorscheme",
+                                "customtypescheme",
+                                "namepersonalisationscheme",
+                                "namealiasscheme"
+                            ],
+                            "type": "string",
+                            "default": "none"
+                        },
+                        "example": "none"
+                    },
+                    {
+                        "name": "detail",
+                        "in": "query",
+                        "description": "The amount of information to be returned. \n\nPossible values are: \n\n* `allstubs`: All artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencestubs`: Referenced artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencepartial`: Referenced item schemes should only include items used by the artefact to be returned. For example, a concept scheme would only contain the concepts used in a DSD, and its isPartial flag would be set to `true`\n* `allcompletestubs`: All artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `referencecompletestubs`: Referenced artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `full`: All available information for all artefacts should be returned\n",
+                        "schema": {
+                            "enum": [
+                                "allstubs",
+                                "referencestubs",
+                                "referencepartial",
+                                "allcompletestubs",
+                                "referencecompletestubs",
+                                "full"
+                            ],
+                            "type": "string",
+                            "default": "referencestubs"
+                        },
+                        "example": "referencestubs"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "Specifies the output format. \n\nPossible values are: \n\n* `application/xml`: Indicates that output format is a XML. Default value\n* `application/json`: Indicates that output format is a JSON.\n",
+                        "schema": {
+                            "enum": [
+                                "application/json",
+                                "application/xml"
+                            ],
+                            "type": "string",
+                            "default": "application/xml"
+                        },
+                        "example": "application/xml"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "data": {
+                                        "codelists": [
+                                            {
+                                                "agencyID": "IMF",
+                                                "annotations": [],
+                                                "codes": [
+                                                    {
+                                                        "annotations": [],
+                                                        "id": "01R",
+                                                        "links": [
+                                                            {
+                                                                "rel": "self",
+                                                                "type": "code",
+                                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                            }
+                                                        ],
+                                                        "name": "Exchange Rates and International Reserves",
+                                                        "names": {
+                                                            "en": "Exchange Rates and International Reserves"
+                                                        },
+                                                        "parent": null,
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                    }
+                                                ],
+                                                "id": "CL_DATADOMAIN",
+                                                "isPartial": false,
+                                                "links": [
+                                                    {
+                                                        "rel": "self",
+                                                        "type": "codelist",
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)"
+                                                    }
+                                                ],
+                                                "name": "Data Domain",
+                                                "names": {
+                                                    "en": "Data Domain"
+                                                },
+                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)",
+                                                "version": "1.0"
+                                            }
+                                        ]
+                                    },
+                                    "meta": {
+                                        "content-languages": [
+                                            "en"
+                                        ],
+                                        "id": "IDREF17",
+                                        "prepared": "2023-08-16T12:43:04.0000000+00:00",
+                                        "receiver": [
+                                            {
+                                                "id": "Unknown"
+                                            }
+                                        ],
+                                        "schema": "https://raw.githubusercontent.com/sdmx-twg/sdmx-json/develop/structure-message/tools/schemas/1.0/sdmx-json-structure-schema.json",
+                                        "sender": {
+                                            "id": "unknown"
+                                        },
+                                        "test": false
+                                    }
+                                }
+                            },
+                            "application/xml": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <mes:Structure xsi:schemaLocation=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message ../../schemas/SDMXMessage.xsd\" xmlns:mes=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:str=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure\" xmlns:com=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\"> <mes:Header> <mes:ID>IDREF103</mes:ID> <mes:Test>false</mes:Test> <mes:Prepared>2023-08-17T09:37:50.173Z</mes:Prepared> <mes:Sender id=\"unknown\"/> <mes:Receiver id=\"Unknown\"/> </mes:Header> <mes:Structures> <str:Codelists> <str:Codelist id=\"CL_DATADOMAIN\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)\" agencyID=\"IMF\" version=\"1.0\"> <com:Name xml:lang=\"en\">Data Domain</com:Name> <str:Code id=\"01R\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R\"> <com:Name xml:lang=\"en\">Exchange Rates and International Reserves</com:Name> </str:Code> </str:Codelist> </str:Codelists> </mes:Structures> </mes:Structure>"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/{structureType}": {
+            "get": {
+                "tags": [
+                    "Structure queries"
+                ],
+                "summary": "Structure Query [Structure Type]",
+                "description": "Structure queries when the “latest” version of “all” resources of the type identified by the resource parameter, maintained by any maintenance agency will be returned.\n",
+                "operationId": "get-structuretype",
+                "parameters": [
+                    {
+                        "name": "structureType",
+                        "in": "path",
+                        "description": "The type of structural metadata (e.g. codelist, dataflow, etc.)",
+                        "required": true,
+                        "schema": {
+                            "enum": [
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "conceptscheme",
+                                "datastructure",
+                                "dataflow",
+                                "categoryscheme",
+                                "categorisation",
+                                "structuremap",
+                                "representationmap"
+                            ],
+                            "type": "string",
+                            "default": "dataflow"
+                        },
+                        "example": "dataflow"
+                    },
+                    {
+                        "name": "references",
+                        "in": "query",
+                        "description": "Instructs the web service to return (or not) the artefacts referenced by the artefact to be returned.\n\nPossible values are: \n\n* `none`: No references will be returned\n* `parents`: Returns the artefacts that use the artefact matching the query\n* `parentsandsiblings`: Returns the artefacts that use the artefact matching the query, as well as the artefacts referenced by these artefacts\n* `children`: Returns the artefacts referenced by the artefact to be returned\n* `descendants`: References of references, up to any level, will be returned\n* `all`: The combination of parentsandsiblings and descendants\n* In addition, a concrete type of resource may also be used (for example, references=codelist).\n",
+                        "schema": {
+                            "enum": [
+                                "none",
+                                "parents",
+                                "parentsandsiblings",
+                                "children",
+                                "descendants",
+                                "all",
+                                "datastructure",
+                                "metadatastructure",
+                                "categoryscheme",
+                                "conceptscheme",
+                                "codelist",
+                                "hierarchicalcodelist",
+                                "organisationscheme",
+                                "agencyscheme",
+                                "dataproviderscheme",
+                                "dataconsumerscheme",
+                                "organisationunitscheme",
+                                "dataflow",
+                                "metadataflow",
+                                "reportingtaxonomy",
+                                "provisionagreement",
+                                "structureset",
+                                "process",
+                                "categorisation",
+                                "contentconstraint",
+                                "actualconstraint",
+                                "allowedconstraint",
+                                "attachmentconstraint",
+                                "transformationscheme",
+                                "rulesetscheme",
+                                "userdefinedoperatorscheme",
+                                "customtypescheme",
+                                "namepersonalisationscheme",
+                                "namealiasscheme"
+                            ],
+                            "type": "string",
+                            "default": "none"
+                        },
+                        "example": "none"
+                    },
+                    {
+                        "name": "detail",
+                        "in": "query",
+                        "description": "The amount of information to be returned. \n\nPossible values are: \n\n* `allstubs`: All artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencestubs`: Referenced artefacts should be returned as stubs, containing only identification information, as well as the artefacts' name\n* `referencepartial`: Referenced item schemes should only include items used by the artefact to be returned. For example, a concept scheme would only contain the concepts used in a DSD, and its isPartial flag would be set to `true`\n* `allcompletestubs`: All artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `referencecompletestubs`: Referenced artefacts should be returned as complete stubs, containing identification information, the artefacts' name, description, annotations and isFinal information\n* `full`: All available information for all artefacts should be returned\n",
+                        "schema": {
+                            "enum": [
+                                "allstubs",
+                                "referencestubs",
+                                "referencepartial",
+                                "allcompletestubs",
+                                "referencecompletestubs",
+                                "full"
+                            ],
+                            "type": "string",
+                            "default": "referencestubs"
+                        },
+                        "example": "referencestubs"
+                    },
+                    {
+                        "name": "Accept",
+                        "in": "header",
+                        "description": "Specifies the output format. \n\nPossible values are: \n\n* `application/xml`: Indicates that output format is a XML. Default value\n* `application/json`: Indicates that output format is a JSON.\n",
+                        "schema": {
+                            "enum": [
+                                "application/json",
+                                "application/xml"
+                            ],
+                            "type": "string",
+                            "default": "application/xml"
+                        },
+                        "example": "application/xml"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "data": {
+                                        "codelists": [
+                                            {
+                                                "agencyID": "IMF",
+                                                "annotations": [],
+                                                "codes": [
+                                                    {
+                                                        "annotations": [],
+                                                        "id": "01R",
+                                                        "links": [
+                                                            {
+                                                                "rel": "self",
+                                                                "type": "code",
+                                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                            }
+                                                        ],
+                                                        "name": "Exchange Rates and International Reserves",
+                                                        "names": {
+                                                            "en": "Exchange Rates and International Reserves"
+                                                        },
+                                                        "parent": null,
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R"
+                                                    }
+                                                ],
+                                                "id": "CL_DATADOMAIN",
+                                                "isPartial": false,
+                                                "links": [
+                                                    {
+                                                        "rel": "self",
+                                                        "type": "codelist",
+                                                        "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)"
+                                                    }
+                                                ],
+                                                "name": "Data Domain",
+                                                "names": {
+                                                    "en": "Data Domain"
+                                                },
+                                                "urn": "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)",
+                                                "version": "1.0"
+                                            }
+                                        ]
+                                    },
+                                    "meta": {
+                                        "content-languages": [
+                                            "en"
+                                        ],
+                                        "id": "IDREF17",
+                                        "prepared": "2023-08-16T12:43:04.0000000+00:00",
+                                        "receiver": [
+                                            {
+                                                "id": "Unknown"
+                                            }
+                                        ],
+                                        "schema": "https://raw.githubusercontent.com/sdmx-twg/sdmx-json/develop/structure-message/tools/schemas/1.0/sdmx-json-structure-schema.json",
+                                        "sender": {
+                                            "id": "unknown"
+                                        },
+                                        "test": false
+                                    }
+                                }
+                            },
+                            "application/xml": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <mes:Structure xsi:schemaLocation=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message ../../schemas/SDMXMessage.xsd\" xmlns:mes=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:str=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure\" xmlns:com=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\"> <mes:Header> <mes:ID>IDREF103</mes:ID> <mes:Test>false</mes:Test> <mes:Prepared>2023-08-17T09:37:50.173Z</mes:Prepared> <mes:Sender id=\"unknown\"/> <mes:Receiver id=\"Unknown\"/> </mes:Header> <mes:Structures> <str:Codelists> <str:Codelist id=\"CL_DATADOMAIN\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=IMF:CL_DATADOMAIN(1.0)\" agencyID=\"IMF\" version=\"1.0\"> <com:Name xml:lang=\"en\">Data Domain</com:Name> <str:Code id=\"01R\" urn=\"urn:sdmx:org.sdmx.infomodel.codelist.Code=IMF:CL_DATADOMAIN(1.0).01R\"> <com:Name xml:lang=\"en\">Exchange Rates and International Reserves</com:Name> </str:Code> </str:Codelist> </str:Codelists> </mes:Structures> </mes:Structure>"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "StructureQueriesResponse": {
+                "type": "object",
+                "properties": {
+                    "meta": {
+                        "$ref": "#/components/schemas/Meta"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Data"
+                    },
+                    "errors": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "description": "Errors field is an array of error objects. When appropriate provides a list of error messages in addition to RESTful web services HTTP error status codes."
+                    }
+                }
+            },
+            "Meta": {
+                "required": [
+                    "id",
+                    "prepared",
+                    "sender"
+                ],
+                "type": "object",
+                "properties": {
+                    "schema": {
+                        "type": "string",
+                        "description": "Contains the URL to the schema allowing to validate the message. This also allows identifying the version of SDMX-JSON format used in this message. Providing the link to the SDMX-JSON schema is recommended.",
+                        "example": "https://raw.githubusercontent.com/sdmx-twg/sdmx-json/develop/structure-message/tools/schemas/1.0/sdmx-json-structure-schema.json"
+                    },
+                    "id": {
+                        "type": "string",
+                        "description": "Unique string that identifies the message for further references.",
+                        "example": "IDREF17"
+                    },
+                    "test": {
+                        "type": "boolean",
+                        "description": "Indicates whether the message is for test purposes or not. False for normal messages.",
+                        "example": false
+                    },
+                    "prepared": {
+                        "type": "string",
+                        "description": "A timestamp indicating when the message was prepared. Values must follow the ISO 8601 syntax for combined dates and times, including time zone.",
+                        "example": "2023-08-16T12:43:04.81Z"
+                    },
+                    "content-languages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array of strings containing the identifyer of all languages used anywhere in the message for localized elements, and thus the languages of the intended audience, representaing in an array format the same information than the http Content-Language response header, e.g. \"en, fr-fr\". See IETF Language Tags: https://tools.ietf.org/html/rfc5646#section-2.1. The array first element indicates the main language used in the message for localized elements. The usage of this property is recommended.",
+                        "example": [
+                            "en"
+                        ]
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human-readable (best-language-match) name for the transmission.",
+                        "example": "Transmission name"
+                    },
+                    "names": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Human-readable localised names for the transmission.",
+                        "example": [
+                            "transmission"
+                        ]
+                    },
+                    "sender": {
+                        "$ref": "#/components/schemas/Sender"
+                    },
+                    "receiver": {
+                        "$ref": "#/components/schemas/Receiver"
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Link"
+                        },
+                        "description": "Links field is an array of link objects. If appropriate, a collection of links to additional external resources for the header."
+                    }
+                },
+                "description": "Used to include non-standard meta-information and basic technical information about the message, such as when it was prepared and who has sent it. Any members MAY be specified within meta objects."
+            },
+            "Sender": {
+                "required": [
+                    "id"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "A unique identifier of the party.",
+                        "example": "ECB"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "human-readable (best-language-match) name of the sender.",
+                        "example": "European Central Bank"
+                    },
+                    "names": {
+                        "$ref": "#/components/schemas/Names"
+                    },
+                    "contacts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Contact"
+                        },
+                        "description": "collection of contacts. Provides contact information for the party in regard to the transmission of the message."
+                    }
+                },
+                "description": "Sender contains information about the party that is transmitting the message."
+            },
+            "Names": {
+                "type": "object",
+                "description": "Object containing all appropriate localised names, one per object property.",
+                "example": {
+                    "en": "This is an English name",
+                    "fr": "C`est un nom français"
+                }
+            },
+            "Receiver": {
+                "required": [
+                    "id"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "A unique identifier of the party.",
+                        "example": "ECB"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "human-readable (best-language-match) name of the sender.",
+                        "example": "European Central Bank"
+                    },
+                    "names": {
+                        "$ref": "#/components/schemas/Names"
+                    },
+                    "contacts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Contact"
+                        },
+                        "description": "A collection of contacts. Provides contact information for the party in regard to the transmission of the message."
+                    }
+                },
+                "description": "Information about the party that is receiving the message. This can be useful if the WS requires authentication. Receiver contains the same fields as sender."
+            },
+            "Link": {
+                "type": "object",
+                "description": "Object containing a linking mechanism for all information on links."
+            },
+            "Contact": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Identifier for the resource.",
+                        "example": "HOTLINE"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human-readable (best-language-match) name of the contact.",
+                        "example": "Statistics hotline"
+                    }
+                },
+                "description": "A collection of contact details."
+            },
+            "Data": {
+                "type": "object",
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/Codelists"
+                    }
+                ],
+                "description": "Data contains the message “primary data”."
+            },
+            "Codelists": {
+                "type": "object",
+                "properties": {
+                    "codelists": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Codelist"
+                        },
+                        "description": "Array of codelists."
+                    }
+                },
+                "description": "A collection of contact details."
+            },
+            "Codelist": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Item"
+                    }
+                ],
+                "description": "Defines the structure of a codelist. A codelist is defined as a list from which some statistical concepts (coded concepts) take their values."
+            },
+            "Item": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Identifier for the item.",
+                        "example": "01"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human-readable (best-language-match) name of the item.",
+                        "example": "Population and migration"
+                    },
+                    "names": {
+                        "$ref": "#/components/schemas/Names"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Human-readable (best-language-match) description of the item. The description is typically longer than the text provided for the name field.",
+                        "example": "Description for Population and migration"
+                    },
+                    "parent": {
+                        "type": "string",
+                        "description": "Contains the ID or the URN for the parent of the item (which is itself an item) enabling the reconstruction of the ordered item hierarchy. Prohibited in certain item scheme types.",
+                        "example": "T"
+                    },
+                    "annotations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Annotation"
+                        },
+                        "description": "Provides a list of annotation objects"
+                    }
+                },
+                "description": "Abtract generic item within the ItemScheme (if the resource is a CategoryScheme, ConceptScheme, Codelist, GeographicCodelist, GeoGridCodelist, AgencyScheme, DataProviderScheme, MetadataProviderSchemes, DataConsumerScheme, OrganisationUnitScheme, ReportingTaxonomy, CustomTypeScheme, VtlMappingScheme, NamePersonalisationScheme, RulesetScheme or UserDefinedOperatorScheme)."
+            },
+            "Annotation": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Identifier for the item.",
+                        "example": "8743298"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Provides a non-localised title for the annotation.",
+                        "example": "Sample annotation"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Type is used to distinguish between annotations designed to support various uses. The types are not enumerated, and these can be freely specified by the creator of the annotations. The definitions and use of annotation types should be documented by their creator.",
+                        "example": "reference"
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "Provides a non-localised value text for the annotation.",
+                        "example": "123456789"
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "A human-readable (best-language-match) text of the annotation.",
+                        "example": "Sample annotation text"
+                    },
+                    "texts": {
+                        "$ref": "#/components/schemas/Names"
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Link"
+                        },
+                        "description": "Links field is an array of link objects. If appropriate, a link to an additional external resource which may contain or supplement the annotation."
+                    }
+                },
+                "description": "ID provides a non-standard identification of an annotation. It can be used to disambiguate annotations."
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "number",
+                        "description": "Provides a code number for the error message. Code numbers are defined in the SDMX 2.1 Web Services Guidelines.",
+                        "example": 150
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "A short, human-readable (best-language-match) summary of the problem that SHOULD NOT change from occurrence to occurrence of the problem, except for purposes of localization.",
+                        "example": "Invalid number of items in the item parameter"
+                    },
+                    "titles": {
+                        "$ref": "#/components/schemas/Names"
+                    }
+                },
+                "description": "Used to provide a error message in addition to RESTful web services HTTP error status codes."
+            }
+        },
+        "securitySchemes": {
+            "apiKeyHeader": {
+                "type": "apiKey",
+                "name": "Ocp-Apim-Subscription-Key",
+                "in": "header"
+            },
+            "apiKeyQuery": {
+                "type": "apiKey",
+                "name": "subscription-key",
+                "in": "query"
+            }
+        }
+    },
+    "security": [
+        {
+            "apiKeyHeader": []
+        },
+        {
+            "apiKeyQuery": []
+        }
+    ]
+}
