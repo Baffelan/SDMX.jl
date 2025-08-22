@@ -7,13 +7,39 @@ using EzXML, DataFrames, HTTP
 """
     get_parent_id(code_node::EzXML.Node) -> Union{String, Missing}
 
-Finds the parent of a code by looking for the `<structure:Parent/Ref>` element and returns the value of its `id` attribute. If no parent is found, it returns `missing`.
+Extracts the parent code identifier from an SDMX code node's hierarchical structure.
+
+This function searches for parent relationships in SDMX codelist hierarchies by
+examining the `<structure:Parent/Ref>` XML element and extracting the referenced
+parent code identifier, enabling hierarchical code analysis and navigation.
 
 # Arguments
-- `code_node::EzXML.Node`: The code node to inspect.
+- `code_node::EzXML.Node`: The SDMX code XML node to examine for parent references
 
 # Returns
-- `Union{String, Missing}`: The parent code id, or `missing` if not found.
+- `Union{String, Missing}`: Parent code identifier if found, `missing` if no parent exists
+
+# Examples
+```julia
+# Extract parent ID from hierarchical code
+parent_id = get_parent_id(code_node)
+
+if !ismissing(parent_id)
+    println("Code has parent: ", parent_id)
+else
+    println("This is a top-level code")
+end
+
+# Use in codelist processing
+for code_node in code_nodes
+    parent = get_parent_id(code_node)
+    code_id = code_node["id"]
+    println("Code ", code_id, " -> Parent: ", parent)
+end
+```
+
+# See also
+[`process_code_node`](@ref), [`extract_codelist`](@ref), [`process_codelist_node`](@ref)
 """
 function get_parent_id(code_node::EzXML.Node)
     ref_node = findfirst(".//structure:Parent/Ref", code_node)
@@ -23,13 +49,45 @@ end
 """
     process_code_node(code_node::EzXML.Node) -> Vector{NamedTuple}
 
-Processes a single `<structure:Code>` node. Extracts the code's own ID and all language-specific information contained strictly within the node. It does not know about its parent Codelist.
+Extracts comprehensive information from a single SDMX code node including multilingual content.
+
+This function processes an individual code element from an SDMX codelist, extracting
+the code identifier, names in multiple languages, annotations, and hierarchical 
+parent relationships. Returns separate records for each language variant found.
 
 # Arguments
-- `code_node::EzXML.Node`: The code node to process.
+- `code_node::EzXML.Node`: The SDMX code XML node to process
 
 # Returns
-- `Vector{NamedTuple}`: A vector of named tuples with code information for each language.
+- `Vector{NamedTuple}`: Vector of code records, one per language, each containing:
+  - `code_id::String`: The code identifier
+  - `language::String`: Language code (e.g., "en", "fr")
+  - `name::Union{String, Missing}`: Code name in this language
+  - `annotation::Union{String, Missing}`: Code annotation/description in this language
+  - `parent_id::Union{String, Missing}`: Parent code identifier if hierarchical
+
+# Examples
+```julia
+# Process individual code node
+code_records = process_code_node(code_node)
+
+# Access multilingual information
+for record in code_records
+    println("Code: ", record.code_id)
+    println("Language: ", record.language)
+    println("Name: ", record.name)
+    if !ismissing(record.parent_id)
+        println("Parent: ", record.parent_id)
+    end
+end
+
+# Filter for specific language
+english_record = filter(r -> r.language == "en", code_records)[1]
+println("English name: ", english_record.name)
+```
+
+# See also
+[`get_parent_id`](@ref), [`process_codelist_node`](@ref), [`extract_codelist`](@ref)
 """
 function process_code_node(code_node::EzXML.Node)
     node_rows = []

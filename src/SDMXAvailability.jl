@@ -25,7 +25,43 @@ export AvailabilityConstraint, DimensionAvailability, TimeAvailability,
 """
     TimeAvailability
 
-Information about actual time period coverage in the data.
+Structure containing comprehensive information about actual time period coverage in SDMX datasets.
+
+This struct captures detailed temporal availability information from SDMX availability
+constraints, including date ranges, format specifications, period counts, and data gaps
+to provide complete temporal coverage analysis.
+
+# Fields
+- `start_date::Union{Date, String}`: Earliest available time period in the dataset
+- `end_date::Union{Date, String}`: Latest available time period in the dataset
+- `format::String`: Time period format ("date", "year", "quarter", "month", etc.)
+- `total_periods::Int`: Total number of distinct time periods with data
+- `gaps::Vector{String}`: Missing time periods within the overall range
+
+# Examples
+```julia
+# Create time availability information
+time_availability = TimeAvailability(
+    Date("2020-01-01"),
+    Date("2023-12-31"),
+    "year", 
+    4,
+    ["2021"]
+)
+
+# Access coverage information
+println("Data available from: ", time_availability.start_date)
+println("Data available to: ", time_availability.end_date)
+println("Total periods: ", time_availability.total_periods)
+
+# Check for gaps
+if !isempty(time_availability.gaps)
+    println("Missing periods: ", join(time_availability.gaps, ", "))
+end
+```
+
+# See also
+[`AvailabilityConstraint`](@ref), [`extract_availability`](@ref), [`get_time_coverage`](@ref)
 """
 struct TimeAvailability
     start_date::Union{Date, String}

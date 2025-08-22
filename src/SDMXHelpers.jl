@@ -7,13 +7,38 @@ export is_url, normalize_sdmx_url, fetch_sdmx_xml
 """
     is_url(input::String) -> Bool
 
-Detect if a string is a URL using robust pattern matching.
-Handles various URL formats including:
-- http://example.com
-- https://example.com  
-- www.example.com
-- example.com/path
-- ftp://example.com
+Detects if a string represents a URL using robust pattern matching.
+
+This function uses multiple patterns to identify various URL formats commonly
+encountered when working with SDMX APIs. It distinguishes URLs from XML content
+to enable automatic handling of different input types.
+
+# Arguments
+- `input::String`: String to test for URL format
+
+# Returns
+- `Bool`: true if input appears to be a URL, false otherwise
+
+# Examples
+```julia
+# Various URL formats recognized
+is_url("https://example.com")  # true
+is_url("http://stats.pacificdata.org/rest/")  # true
+is_url("www.example.com")  # true
+is_url("example.com/data")  # true
+is_url("ftp://files.example.com")  # true
+
+# Non-URL content rejected
+is_url("<xml>content</xml>")  # false
+is_url("plain text")  # false
+is_url("")  # AssertionError
+```
+
+# Throws
+- `AssertionError`: If input string is empty
+
+# See also
+[`normalize_sdmx_url`](@ref), [`fetch_sdmx_xml`](@ref)
 """
 function is_url(input::String)
     @assert !isempty(input) "Input string cannot be empty"
@@ -44,10 +69,42 @@ end
 """
     normalize_sdmx_url(url::String) -> String
 
-Normalize a URL to ensure it has proper protocol and SDMX references=all parameter.
-- Adds https:// if no protocol is specified
-- Adds references=all parameter if not already present
-- Handles existing query parameters correctly
+Normalizes URLs for SDMX API compatibility with required parameters.
+
+This function ensures URLs have proper protocols and includes the SDMX
+`references=all` parameter needed for complete structure retrieval. It handles
+various URL formats and existing query parameters correctly.
+
+# Arguments
+- `url::String`: URL to normalize (must be a valid URL)
+
+# Returns
+- `String`: Normalized URL with protocol and SDMX parameters
+
+# Examples
+```julia
+# Add missing protocol
+normalize_sdmx_url("stats.pacificdata.org/rest/datastructure")
+# Returns: "https://stats.pacificdata.org/rest/datastructure?references=all"
+
+# Add SDMX parameter to existing URL
+normalize_sdmx_url("https://api.example.com/structure")
+# Returns: "https://api.example.com/structure?references=all"
+
+# Handle existing query parameters
+normalize_sdmx_url("https://api.example.com/structure?format=xml")
+# Returns: "https://api.example.com/structure?format=xml&references=all"
+
+# Already normalized URLs unchanged
+normalize_sdmx_url("https://api.example.com/structure?references=all")
+# Returns: "https://api.example.com/structure?references=all"
+```
+
+# Throws
+- `AssertionError`: If URL is empty or not a valid URL format
+
+# See also
+[`is_url`](@ref), [`fetch_sdmx_xml`](@ref)
 """
 function normalize_sdmx_url(url::String)
     @assert !isempty(url) "URL cannot be empty"
@@ -84,8 +141,43 @@ end
 """
     fetch_sdmx_xml(input::String) -> String
 
-Fetch SDMX XML content from a URL or return XML string as-is.
-Automatically handles URL normalization and validation.
+Fetches SDMX XML content from URLs or validates XML strings.
+
+This function provides unified handling for SDMX content retrieval, automatically
+detecting whether the input is a URL (which it fetches) or XML content (which it
+validates and returns). URLs are automatically normalized for SDMX compatibility.
+
+# Arguments
+- `input::String`: Either a URL to fetch from or XML content string
+
+# Returns
+- `String`: XML content from URL or validated input XML string
+
+# Examples
+```julia
+# Fetch from SDMX REST API
+xml_content = fetch_sdmx_xml("https://stats-sdmx-disseminate.pacificdata.org/rest/datastructure/SPC/DF_BP50")
+
+# Handle various URL formats
+xml_content = fetch_sdmx_xml("stats.pacificdata.org/rest/datastructure/SPC/DF_BP50")
+
+# Pass through XML content
+xml_string = "<?xml version=\\"1.0\\"?>...>"
+xml_content = fetch_sdmx_xml(xml_string)  # Returns xml_string unchanged
+
+# Error handling
+try
+    xml_content = fetch_sdmx_xml(invalid_url)
+catch e
+    println("Failed to fetch XML: ", e)
+end
+```
+
+# Throws
+- `AssertionError`: For empty input, HTTP failures, empty responses, or invalid XML
+
+# See also
+[`is_url`](@ref), [`normalize_sdmx_url`](@ref)
 """
 function fetch_sdmx_xml(input::String)
     @assert !isempty(input) "Input cannot be empty"

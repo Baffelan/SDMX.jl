@@ -15,14 +15,44 @@ export extract_dataflow_schema
 """
     DataflowSchema
 
-A struct containing the complete schema information for an SDMX dataflow.
+Complete schema information for an SDMX dataflow including structure, dimensions, and metadata.
 
-Fields:
-- `dataflow_info::NamedTuple`: Basic dataflow metadata (id, agency, version, name, description)
-- `dimensions::DataFrame`: All dimensions with position, concept, codelist info
-- `attributes::DataFrame`: All attributes with assignment status, concept, codelist info  
-- `measures::DataFrame`: Primary measure(s) with concept and data type info
-- `time_dimension::Union{NamedTuple, Nothing}`: Special time dimension info if present
+This struct contains all essential schema information needed to validate, transform,
+and work with SDMX-CSV data. It provides comprehensive metadata about the dataflow
+structure, dimension ordering, attribute requirements, and measure definitions.
+
+# Fields
+- `dataflow_info::NamedTuple`: Basic dataflow metadata including id, agency, version, name, and description
+- `dimensions::DataFrame`: All dimensions with position ordering, concept references, and codelist information
+- `attributes::DataFrame`: All attributes with assignment status (required/conditional), concept and codelist info  
+- `measures::DataFrame`: Primary measure definitions with concept references and data type specifications
+- `time_dimension::Union{NamedTuple, Nothing}`: Special time dimension information if present in the dataflow
+
+# Examples
+```julia
+# Extract schema from SDMX-ML
+schema = extract_dataflow_schema("SPC", "DF_BP50", "1.0")
+
+# Access dataflow information
+println("Dataflow: ", schema.dataflow_info.name)
+println("Agency: ", schema.dataflow_info.agency)
+
+# Examine dimensions
+println("Number of dimensions: ", nrow(schema.dimensions))
+println("Dimension names: ", schema.dimensions.concept_id)
+
+# Check for time dimension
+if schema.time_dimension !== nothing
+    println("Time dimension: ", schema.time_dimension.concept_id)
+end
+
+# Review attributes
+required_attrs = filter(row -> row.assignment_status == "Mandatory", schema.attributes)
+println("Required attributes: ", required_attrs.concept_id)
+```
+
+# See also
+[`extract_dataflow_schema`](@ref), [`DataflowInfo`](@ref), [`DimensionInfo`](@ref)
 """
 struct DataflowSchema
     dataflow_info::NamedTuple
@@ -35,7 +65,43 @@ end
 """
     extract_dimension_info(dim_node::EzXML.Node) -> NamedTuple
 
-Extracts information from a single Dimension or TimeDimension node.
+Extracts comprehensive dimension information from a single SDMX Dimension or TimeDimension XML node.
+
+This function parses an SDMX dimension node to extract all relevant metadata including
+position, concept references, codelist associations, and data type information needed
+for proper dimension handling in SDMX data processing.
+
+# Arguments
+- `dim_node::EzXML.Node`: XML node representing a Dimension or TimeDimension element
+
+# Returns
+- `NamedTuple`: Dimension metadata with fields:
+  - `id::String`: Dimension identifier
+  - `position::Int`: Position in dimension ordering  
+  - `concept_id::Union{String, Missing}`: Referenced concept identifier
+  - `concept_scheme::Union{String, Missing}`: Concept scheme reference
+  - `codelist_id::Union{String, Missing}`: Associated codelist identifier
+  - `codelist_agency::Union{String, Missing}`: Codelist maintaining agency
+  - `data_type::String`: Dimension data type specification
+
+# Examples
+```julia
+# Extract dimension info from XML node
+dim_info = extract_dimension_info(dimension_node)
+
+# Access dimension properties
+println("Dimension ID: ", dim_info.id)
+println("Position: ", dim_info.position)
+println("Concept: ", dim_info.concept_id)
+
+# Check for codelist reference
+if !ismissing(dim_info.codelist_id)
+    println("Uses codelist: ", dim_info.codelist_id)
+end
+```
+
+# See also
+[`extract_dataflow_schema`](@ref), [`extract_attribute_info`](@ref), [`DataflowSchema`](@ref)
 """
 function extract_dimension_info(dim_node::EzXML.Node)
     dim_id = dim_node["id"]
@@ -75,7 +141,47 @@ end
 """
     extract_attribute_info(attr_node::EzXML.Node) -> NamedTuple
 
-Extracts information from a single Attribute node.
+Extracts comprehensive attribute information from a single SDMX Attribute XML node.
+
+This function parses an SDMX attribute node to extract metadata including assignment
+status, concept references, codelist associations, and attachment level information
+required for proper attribute handling in SDMX data structures.
+
+# Arguments
+- `attr_node::EzXML.Node`: XML node representing an Attribute element
+
+# Returns
+- `NamedTuple`: Attribute metadata with fields:
+  - `id::String`: Attribute identifier
+  - `assignment_status::String`: Required status ("Mandatory" or "Conditional")
+  - `concept_id::Union{String, Missing}`: Referenced concept identifier
+  - `concept_scheme::Union{String, Missing}`: Concept scheme reference
+  - `codelist_id::Union{String, Missing}`: Associated codelist identifier
+  - `codelist_agency::Union{String, Missing}`: Codelist maintaining agency
+  - `attachment_level::String`: Where attribute is attached (dataset, dimension, observation)
+
+# Examples
+```julia
+# Extract attribute info from XML node
+attr_info = extract_attribute_info(attribute_node)
+
+# Check attribute requirements
+if attr_info.assignment_status == "Mandatory"
+    println("Required attribute: ", attr_info.id)
+end
+
+# Access concept and codelist information
+println("Concept: ", attr_info.concept_id)
+println("Attachment: ", attr_info.attachment_level)
+
+# Check for codelist constraints
+if !ismissing(attr_info.codelist_id)
+    println("Constrained by codelist: ", attr_info.codelist_id)
+end
+```
+
+# See also
+[`extract_dimension_info`](@ref), [`extract_dataflow_schema`](@ref), [`DataflowSchema`](@ref)
 """
 function extract_attribute_info(attr_node::EzXML.Node)
     attr_id = attr_node["id"]
@@ -222,8 +328,41 @@ end
 """
     extract_dataflow_schema(input::String) -> DataflowSchema
 
-Convenience wrapper to download dataflow schema from a URL or parse from XML string.
-This function automatically detects whether the string is a URL or XML content.
+Extracts dataflow schema from SDMX-ML content provided as URL or XML string.
+
+This convenience function automatically handles both URL-based SDMX API calls and
+direct XML string parsing. It downloads schema information from SDMX web services
+or processes local XML content to build a complete DataflowSchema.
+
+# Arguments
+- `input::String`: Either a URL to SDMX dataflow schema or raw SDMX-ML XML content
+
+# Returns
+- `DataflowSchema`: Complete schema with dimensions, attributes, measures, and metadata
+
+# Examples
+```julia
+# Extract from SDMX API URL
+url = "https://stats-sdmx-disseminate.pacificdata.org/rest/datastructure/SPC/DF_BP50"
+schema = extract_dataflow_schema(url)
+
+# Extract from local XML file content
+xml_content = read("dataflow.xml", String)
+schema = extract_dataflow_schema(xml_content)
+
+# Use the schema
+println("Dataflow: ", schema.dataflow_info.name)
+println("Dimensions: ", nrow(schema.dimensions))
+println("Attributes: ", nrow(schema.attributes))
+```
+
+# Throws
+- `HTTP.ExceptionRequest.StatusError`: If URL request fails
+- `EzXML.XMLError`: If XML parsing fails
+- `KeyError`: If required SDMX elements are missing
+
+# See also
+[`extract_dataflow_schema(::EzXML.Document)`](@ref), [`DataflowSchema`](@ref), [`fetch_sdmx_xml`](@ref)
 """
 function extract_dataflow_schema(input::String)
     try

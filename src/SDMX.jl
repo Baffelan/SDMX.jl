@@ -5,8 +5,10 @@ This package provides utilities to extract codelists and codes from SDMX-ML XML 
 """
 module SDMX
 
-using EzXML, DataFrames, HTTP, CSV, XLSX, Statistics, Dates, JSON3, StatsBase
+using EzXML, DataFrames, HTTP, CSV, Statistics, Dates, JSON3, StatsBase
 
+include("SDMXElementTypes.jl")
+include("SDMXGeneratedParsing.jl")
 include("SDMXCodelists.jl")
 include("SDMXConcepts.jl")
 include("SDMXDataflows.jl")
@@ -19,41 +21,59 @@ include("SDMXHelpers.jl")
 
 # Note: Data source abstractions moved to SDMXLLM.jl package
 
-# Pipeline operators and workflow functions
-export validate_with, profile_with, map_with, generate_with, chain, pipeline
-export tap, branch, parallel_map, SDMXPipeline
+# === CORE DATA STRUCTURES ===
+# Primary types for SDMX schema, data profiling, validation, and availability analysis
+export DataflowSchema, SourceDataProfile, ColumnProfile
+export AvailabilityConstraint, DimensionAvailability, TimeAvailability  
+export ValidationResult, ValidationRule, ValidationSeverity, SDMXValidator
 
-# Custom pipeline operators (working Unicode)  
-export ⊆, ⇒
+# === GENERATED FUNCTION TYPES & PARSING ===
+# Type-specialized parsing system using @generated functions for compile-time optimization
+export SDMXElement, DimensionElement, AttributeElement, MeasureElement, ConceptElement, CodelistElement, AvailabilityElement, TimeElement
+export extract_sdmx_element, get_xpath_patterns
+# Generated function integration utilities removed for simplicity
 
-# Codelist extraction functions
+# === SDMX SCHEMA & METADATA EXTRACTION ===
+# Functions for extracting and analyzing SDMX schema structures and concepts
+export extract_concepts, extract_dataflow_schema
+export get_required_columns, get_optional_columns, get_codelist_columns, get_dimension_order
+
+# === CODELIST PROCESSING ===
+# Functions for extracting, processing, and mapping SDMX codelists
 export get_parent_id, process_code_node, extract_codes_from_codelist_node
 export extract_all_codelists, filter_codelists_by_availability, get_available_codelist_summary
 export construct_availability_url, map_codelist_to_dimension
 
-# Schema and concept extraction
-export extract_concepts, DataflowSchema, extract_dataflow_schema
-export get_required_columns, get_optional_columns, get_codelist_columns, get_dimension_order
-
-# Availability constraint functions
-export AvailabilityConstraint, DimensionAvailability, TimeAvailability
+# === DATA AVAILABILITY ANALYSIS ===
+# Functions for analyzing data availability constraints and coverage
 export extract_availability, get_available_values, get_time_coverage
 export compare_schema_availability, get_data_coverage_summary, find_data_gaps, print_availability_summary
 
-# Source data profiling
-export SourceDataProfile, ColumnProfile, read_source_data, profile_source_data
-export suggest_column_mappings, print_source_profile
+# === SOURCE DATA PROCESSING & PROFILING ===
+# Functions for reading, profiling, and analyzing source data files
+export read_source_data, profile_source_data, suggest_column_mappings, print_source_profile
 
-# Validation system
-export ValidationResult, ValidationRule, ValidationSeverity, SDMXValidator
+# === DATA VALIDATION SYSTEM ===
+# Comprehensive validation framework for SDMX data quality and compliance
 export create_validator, validate_sdmx_csv, validate_structure, validate_content, validate_quality
 export generate_validation_report, fix_validation_issues, add_custom_validation_rule
 export get_validation_summary, export_validation_results, preview_validation_output
 
-# Data query functions
+# === DATA QUERY & RETRIEVAL ===
+# Functions for constructing queries and retrieving SDMX data from APIs
 export construct_data_url, fetch_sdmx_data, query_sdmx_data, construct_sdmx_key, summarize_data
 
-# Helper functions
+# === PIPELINE OPERATIONS & WORKFLOW ===
+# Functional programming interface for chaining SDMX operations
+export validate_with, profile_with, map_with, generate_with, chain, pipeline
+export tap, branch, parallel_map, SDMXPipeline
+
+# === PIPELINE OPERATORS (Unicode) ===
+# Custom operators for expressive SDMX data pipeline construction
+export ⊆, ⇒
+
+# === UTILITY FUNCTIONS ===
+# Helper functions for URL handling and XML processing
 export is_url, normalize_sdmx_url, fetch_sdmx_xml
 
 end # module SDMX 

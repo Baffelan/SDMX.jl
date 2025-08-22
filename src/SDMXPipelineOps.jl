@@ -14,17 +14,30 @@ export ⊆, ⇒, validate_with, profile_with, map_with, generate_with, chain
 
 """
     ⊆(data::DataFrame, schema::DataflowSchema) -> Bool
-    data ⊆ schema
 
-Schema compliance operator using subset symbol. Returns true if data structure is a subset/compliant with schema requirements.
+Schema compliance operator using subset symbol.
 
-# Example
+Returns true if data structure is a subset/compliant with schema requirements.
+This operator provides an intuitive way to check if a DataFrame conforms to
+the structure defined by an SDMX dataflow schema.
+
+# Arguments
+- `data::DataFrame`: The DataFrame to validate against the schema
+- `schema::DataflowSchema`: The SDMX dataflow schema to check compliance against
+
+# Returns
+- `Bool`: true if data structure complies with schema requirements, false otherwise
+
+# Examples
 ```julia
 is_compliant = my_data ⊆ schema
 if my_data ⊆ schema
     println("Data is schema compliant!")
 end
 ```
+
+# See also
+[`⇒`](@ref), [`validate_with`](@ref)
 """
 function ⊆(data::DataFrame, schema::DataflowSchema)
     required_cols = get_required_columns(schema)
@@ -33,14 +46,29 @@ end
 
 """
     ⇒(data::DataFrame, validator::SDMXValidator) -> ValidationResult
-    data ⇒ validator
 
-Data flow operator: validate DataFrame directly.
+Data flow operator for direct DataFrame validation.
 
-# Example
+Provides a pipeline-friendly operator for applying SDMX validation to DataFrames.
+The arrow symbol suggests the flow of data through the validation process.
+
+# Arguments
+- `data::DataFrame`: The DataFrame to validate
+- `validator::SDMXValidator`: The validator to apply to the data
+
+# Returns
+- `ValidationResult`: The result of the validation process
+
+# Examples
 ```julia
 result = my_data ⇒ validator
+if (my_data ⇒ validator).is_valid
+    println("Validation passed!")
+end
 ```
+
+# See also
+[`⊆`](@ref), [`validate_with`](@ref)
 """
 function ⇒(data::DataFrame, validator::SDMXValidator)
     return validator(data)
@@ -51,12 +79,27 @@ end
 """
     validate_with(schema::DataflowSchema; kwargs...) -> Function
 
-Creates a validation function that can be used in pipelines.
+Creates a validation function for use in data processing pipelines.
 
-# Example
+This function returns a closure that can be used with Julia's pipe operator
+to validate DataFrames against SDMX schemas in a functional programming style.
+
+# Arguments
+- `schema::DataflowSchema`: The SDMX dataflow schema to validate against
+- `kwargs...`: Additional keyword arguments passed to the validator
+
+# Returns
+- `Function`: A function that takes a DataFrame and returns a ValidationResult
+
+# Examples
 ```julia
 result = my_data |> validate_with(schema; strict_mode=true)
+validator_func = validate_with(schema; performance_mode=true)
+result = validator_func(my_data)
 ```
+
+# See also
+[`⇒`](@ref), [`create_validator`](@ref), [`profile_with`](@ref)
 """
 function validate_with(schema::DataflowSchema; kwargs...)
     validator = create_validator(schema; kwargs...)
@@ -66,12 +109,26 @@ end
 """
     profile_with(filename::String="data") -> Function
 
-Creates a profiling function that can be used in pipelines.
+Creates a data profiling function for use in processing pipelines.
 
-# Example
+This function returns a closure that profiles source data and generates
+summary statistics and quality assessments suitable for SDMX data analysis.
+
+# Arguments
+- `filename::String="data"`: Base filename for the data source (default: "data")
+
+# Returns
+- `Function`: A function that takes a DataFrame and returns a SourceDataProfile
+
+# Examples
 ```julia
 profile = my_data |> profile_with("my_dataset.csv")
+profiler = profile_with("economic_indicators")
+profile = profiler(my_data)
 ```
+
+# See also
+[`profile_source_data`](@ref), [`validate_with`](@ref)
 """
 function profile_with(filename::String="data")
     return data -> profile_source_data(data, filename)
@@ -82,18 +139,38 @@ end
 """
     chain(operations...) -> Function
 
-Creates a composable chain of operations that can be applied to data.
+Creates a composable chain of operations for data processing workflows.
 
-# Example
+This function creates a single function that applies a sequence of operations
+in order, passing the result of each operation to the next. It's useful for
+building complex data transformation pipelines.
+
+# Arguments
+- `operations...`: Variable number of functions to chain together
+
+# Returns
+- `Function`: A function that applies all operations sequentially to input data
+
+# Examples
 ```julia
 processor = chain(
     validate_with(schema),
     profile_with("my_data.csv"),
-    data -> (data, map_with(engine, schema)(profile_source_data(data, "temp")))
+    data -> transform_data(data)
 )
 
 result = my_data |> processor
+
+# More complex example
+analysis_pipeline = chain(
+    validate_with(schema; strict_mode=true),
+    profile_with("dataset"),
+    data -> (data, infer_mappings(data, schema))
+)
 ```
+
+# See also
+[`pipeline`](@ref), [`SDMXPipeline`](@ref)
 """
 function chain(operations...)
     return data -> foldl((result, op) -> op(result), operations, init=data)
@@ -105,9 +182,28 @@ end
 # =================== COMPREHENSIVE WORKFLOW PIPELINE ===================
 
 """
-    SDMXPipeline
+    SDMXPipeline{T}
 
-A composable pipeline for complete SDMX data processing workflows.
+A composable pipeline structure for complete SDMX data processing workflows.
+
+This struct wraps a collection of operations that can be applied sequentially
+to data, providing a reusable and composable approach to SDMX data processing.
+
+# Fields
+- `operations::T`: Tuple or collection of operations to be applied in sequence
+
+# Examples
+```julia
+my_pipeline = pipeline(
+    validate_with(schema),
+    profile_with("dataset.csv")
+)
+
+result = my_data |> my_pipeline
+```
+
+# See also
+[`pipeline`](@ref), [`chain`](@ref)
 """
 struct SDMXPipeline{T}
     operations::T
@@ -118,27 +214,64 @@ end
 
 Create an SDMX processing pipeline with chainable operations.
 
-# Example
+This function constructs an SDMXPipeline that can be reused and applied
+to different datasets using Julia's pipe operator syntax.
+
+# Arguments
+- `operations...`: Variable number of functions to include in the pipeline
+
+# Returns
+- `SDMXPipeline`: A pipeline object that can be applied to data
+
+# Examples
 ```julia
 my_pipeline = pipeline(
     validate_with(schema; strict_mode=true),
-    profile_with("dataset.csv"),
-    mapping_stage -> (mapping_stage, infer_advanced_mappings(engine, mapping_stage, schema)),
-    generate_with(generator, schema; template_name="standard_transformation")
+    profile_with("dataset.csv")
 )
 
 # Execute the pipeline
 result = my_data |> my_pipeline
+
+# Reusable pipeline for multiple datasets
+standard_pipeline = pipeline(
+    validate_with(schema),
+    profile_with("data")
+)
+
+results = [dataset1, dataset2] .|> Ref(standard_pipeline)
 ```
+
+# See also
+[`SDMXPipeline`](@ref), [`chain`](@ref), [`|>`](@ref)
 """
 function pipeline(operations...)
     return SDMXPipeline(operations)
 end
 
 """
-    |>(data, pipeline::SDMXPipeline)
+    |>(data, pipeline::SDMXPipeline) -> Any
 
-Execute an SDMXPipeline on data.
+Execute an SDMXPipeline on data using Julia's pipe operator.
+
+This method enables the pipe operator syntax for applying SDMXPipeline objects
+to data, providing a clean and intuitive workflow syntax.
+
+# Arguments
+- `data`: The input data to process through the pipeline
+- `pipeline::SDMXPipeline`: The pipeline to execute
+
+# Returns
+- `Any`: The result after applying all pipeline operations
+
+# Examples
+```julia
+result = my_data |> my_pipeline
+processed_data = raw_dataset |> validation_pipeline
+```
+
+# See also
+[`SDMXPipeline`](@ref), [`pipeline`](@ref)
 """
 function |>(data, pipeline::SDMXPipeline)
     return foldl((result, op) -> op(result), pipeline.operations, init=data)
@@ -153,16 +286,35 @@ end
 """
     tap(f::Function) -> Function
 
-Creates a "tap" function for side effects in pipelines (like logging, printing, etc.)
-without modifying the data flow.
+Creates a "tap" function for side effects in pipelines without modifying data flow.
 
-# Example
+This function allows you to perform side effects (like logging, printing, or
+debugging) at any point in a pipeline without affecting the data being passed through.
+The original data is always returned unchanged.
+
+# Arguments
+- `f::Function`: Function to call for side effects, receives the data as input
+
+# Returns
+- `Function`: A function that applies the side effect and returns the original data
+
+# Examples
 ```julia
 result = my_data |>
     tap(d -> println("Processing \$(nrow(d)) rows")) |>
     validate_with(schema) |>
     tap(r -> println("Validation score: \$(r.overall_score)"))
+
+# Debugging pipeline
+debug_pipeline = pipeline(
+    tap(data -> @info "Input data size: \$(size(data))"),
+    validate_with(schema),
+    tap(result -> @info "Validation result: \$(result.is_valid)")
+)
 ```
+
+# See also
+[`chain`](@ref), [`pipeline`](@ref)
 """
 function tap(f::Function)
     return data -> begin
@@ -174,9 +326,20 @@ end
 """
     branch(condition::Function, true_path::Function, false_path::Function=identity) -> Function
 
-Creates conditional branching in pipelines.
+Creates conditional branching in data processing pipelines.
 
-# Example
+This function allows pipelines to take different processing paths based on
+runtime conditions, enabling adaptive data processing workflows.
+
+# Arguments
+- `condition::Function`: Function that takes data and returns a boolean
+- `true_path::Function`: Function to apply when condition is true
+- `false_path::Function=identity`: Function to apply when condition is false (default: identity)
+
+# Returns
+- `Function`: A function that applies conditional logic to input data
+
+# Examples
 ```julia
 result = my_data |>
     branch(
@@ -184,23 +347,54 @@ result = my_data |>
         validate_with(schema; performance_mode=true),  # Large dataset path
         validate_with(schema; strict_mode=true)        # Small dataset path
     )
+
+# Handle missing data differently
+processor = branch(
+    data -> any(ismissing, eachcol(data)),
+    data -> impute_missing(data),  # Has missing values
+    identity                       # No missing values
+)
 ```
+
+# See also
+[`tap`](@ref), [`chain`](@ref)
 """
 function branch(condition::Function, true_path::Function, false_path::Function=identity)
     return data -> condition(data) ? true_path(data) : false_path(data)
 end
 
 """
-    parallel_map(f::Function, collections...) -> Function
+    parallel_map(f::Function) -> Function
 
-Creates a parallel mapping function for use in pipelines.
-Useful for processing multiple datasets or performing multiple operations concurrently.
+Creates a parallel mapping function for concurrent data processing.
 
-# Example
+This function creates a parallel version of map that can process multiple
+datasets or collections concurrently, improving performance for CPU-intensive
+SDMX operations.
+
+# Arguments
+- `f::Function`: Function to apply to each element in parallel
+
+# Returns
+- `Function`: A function that applies f to collections in parallel using threading
+
+# Examples
 ```julia
 # Process multiple datasets in parallel
 results = datasets |> parallel_map(validate_with(schema))
+
+# Parallel profiling of multiple files
+profiles = data_files |> parallel_map(profile_with("batch_analysis"))
+
+# Apply transformation to multiple dataframes
+transformed = dataframes |> parallel_map(data -> transform(data, :col => :new_col))
 ```
+
+# Throws
+- `BoundsError`: If collections are empty
+
+# See also
+[`chain`](@ref), [`Base.Threads.@threads`](@ref)
 """
 function parallel_map(f::Function)
     return collections -> begin

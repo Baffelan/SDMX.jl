@@ -9,13 +9,38 @@ export extract_concepts
 """
     extract_concepts(doc::EzXML.Document) -> DataFrame
 
-Extracts concepts, their descriptions, variable mappings, and roles (dimension, attribute, measure, time dimension) from an SDMX structure document.
+Extracts concept definitions and their structural roles from SDMX documents.
+
+This function parses SDMX structure documents to extract concept schemas,
+including concept identifiers, descriptions, variable mappings, and their roles
+within the data structure (dimension, attribute, measure, or time dimension).
 
 # Arguments
-- `doc::EzXML.Document`: The parsed SDMX XML document.
+- `doc::EzXML.Document`: Parsed SDMX XML structure document
 
 # Returns
-- `DataFrame`: A DataFrame with columns: `concept_id`, `description`, `variable`, `role`.
+- `DataFrame`: Concept definitions with columns:
+  - `concept_id::String`: Unique concept identifier
+  - `description::Union{String,Missing}`: Human-readable concept description
+  - `variable::String`: Variable identifier used in data structure
+  - `role::String`: Structural role ("dimension", "attribute", "measure", "time_dimension")
+
+# Examples
+```julia
+# Extract from parsed XML document
+doc = parsexml(xml_string)
+concepts = extract_concepts(doc)
+
+# View concept roles
+println("Dimensions: ", filter(r -> r.role == "dimension", concepts).concept_id)
+println("Measures: ", filter(r -> r.role == "measure", concepts).concept_id)
+
+# Find concept descriptions
+concept_desc = Dict(c.concept_id => c.description for c in eachrow(concepts))
+```
+
+# See also
+[`extract_concepts`](@ref), [`extract_dataflow_schema`](@ref)
 """
 function extract_concepts(doc::EzXML.Document)
     rootnode = root(doc)
@@ -75,10 +100,42 @@ function extract_concepts(doc::EzXML.Document)
 end
 
 """
-    extract_concepts(xml_string::String) -> DataFrame
+    extract_concepts(input::String) -> DataFrame
 
-Convenience wrapper to download, parse, and extract all concept data from a URL or parse XML string.
-This function automatically detects whether the string is a URL or XML content.
+Convenience function for concept extraction from URLs or XML strings.
+
+This function automatically handles URL fetching and XML parsing, providing a
+simple interface for concept extraction from either SDMX REST API endpoints
+or XML content strings. It includes error handling for network and parsing issues.
+
+# Arguments
+- `input::String`: Either a URL to SDMX structure endpoint or XML content string
+
+# Returns
+- `DataFrame`: Concept definitions (same structure as document-based extraction), 
+  or empty DataFrame with correct schema if extraction fails
+
+# Examples
+```julia
+# Extract from SDMX REST API URL
+url = "https://stats-sdmx-disseminate.pacificdata.org/rest/datastructure/SPC/DF_BP50/1.0"
+concepts = extract_concepts(url)
+
+# Extract from XML string
+xml_content = read("datastructure.xml", String)
+concepts = extract_concepts(xml_content)
+
+# Handle potential failures gracefully
+concepts = extract_concepts(possibly_invalid_url)
+if nrow(concepts) == 0
+    println("No concepts extracted - check URL or XML format")
+else
+    println("Extracted ", nrow(concepts), " concept definitions")
+end
+```
+
+# See also
+[`extract_concepts`](@ref), [`fetch_sdmx_xml`](@ref)
 """
 function extract_concepts(input::String)
     try

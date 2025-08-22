@@ -9,7 +9,7 @@ This module handles reading and analyzing source data files (CSV, Excel) to:
 - Analyze data distributions for mapping suggestions
 """
 
-using DataFrames, CSV, XLSX, Statistics, Dates
+using DataFrames, CSV, Statistics, Dates
 using EzXML, HTTP
 
 export SourceDataProfile, read_source_data, profile_source_data, suggest_column_mappings
@@ -17,20 +17,41 @@ export SourceDataProfile, read_source_data, profile_source_data, suggest_column_
 """
     ColumnProfile
 
-A struct containing detailed information about a single column in source data.
+A struct containing detailed analysis information about a single column in source data.
 
-Fields:
-- `name::String`: Original column name
-- `type::Type`: Detected Julia type
-- `missing_count::Int`: Number of missing values
-- `unique_count::Int`: Number of unique values
-- `sample_values::Vector`: Sample of actual values (up to 10)
+This struct represents the comprehensive analysis results for a data column, including
+type detection, statistical properties, and pattern recognition. It's used by the
+source data profiling system to understand column characteristics and suggest
+appropriate SDMX mappings.
+
+# Fields
+- `name::String`: Original column name from the source data
+- `type::Type`: Detected Julia type of the column data
+- `missing_count::Int`: Number of missing/null values in the column
+- `unique_count::Int`: Number of distinct non-missing values
+- `sample_values::Vector`: Representative sample of actual values (up to 10 items)
 - `is_categorical::Bool`: Whether this appears to be a categorical variable
-- `categories::Union{Vector, Nothing}`: Unique categories if categorical
+- `categories::Union{Vector, Nothing}`: Unique categories if categorical, otherwise `nothing`
 - `is_temporal::Bool`: Whether this appears to be a time/date column
-- `temporal_format::Union{String, Nothing}`: Detected date/time format
-- `numeric_stats::Union{NamedTuple, Nothing}`: Min/max/mean if numeric
-- `string_patterns::Vector{String}`: Common string patterns if text
+- `temporal_format::Union{String, Nothing}`: Detected date/time format string if temporal
+- `numeric_stats::Union{NamedTuple, Nothing}`: Statistical summary (min, max, mean, median) if numeric
+- `string_patterns::Vector{String}`: Detected string patterns (e.g., "UPPERCASE_CODE", "TEXT_NAME")
+
+# Examples
+```julia
+# Typically created via profile_column function
+column_data = [1, 2, 3, missing, 4]
+profile = profile_column("age", column_data)
+
+# Access profile information
+println(profile.name)           # "age"
+println(profile.missing_count)  # 1
+println(profile.is_categorical) # false
+println(profile.numeric_stats)  # (min=1, max=4, mean=2.5, median=2.5)
+```
+
+# See also
+[`profile_column`](@ref), [`SourceDataProfile`](@ref), [`detect_column_type_and_patterns`](@ref)
 """
 struct ColumnProfile
     name::String
@@ -49,18 +70,48 @@ end
 """
     SourceDataProfile
 
-A struct containing comprehensive analysis of source data.
+A struct containing comprehensive analysis of source data for SDMX transformation planning.
 
-Fields:
-- `file_path::String`: Path to the source file
-- `file_type::String`: File type (csv, xlsx, etc.)
-- `row_count::Int`: Number of data rows
-- `column_count::Int`: Number of columns
-- `columns::Vector{ColumnProfile}`: Detailed profile of each column
-- `data_quality_score::Float64`: Overall data quality score (0-1)
-- `suggested_key_columns::Vector{String}`: Columns that might be dimensions
-- `suggested_value_columns::Vector{String}`: Columns that might be measures
-- `suggested_time_columns::Vector{String}`: Columns that might be time dimensions
+This struct aggregates the complete analysis of a source dataset, including metadata about
+the file, detailed column-by-column profiles, data quality assessment, and intelligent
+suggestions for mapping columns to SDMX schema elements. It serves as the foundation
+for automated and LLM-assisted data transformation workflows.
+
+# Fields
+- `file_path::String`: Path to the analyzed source file (empty if DataFrame input)
+- `file_type::String`: Detected file type (csv, xlsx, etc., or "unknown")
+- `row_count::Int`: Total number of data rows in the dataset
+- `column_count::Int`: Total number of columns in the dataset
+- `columns::Vector{ColumnProfile}`: Detailed analysis profiles for each individual column
+- `data_quality_score::Float64`: Overall data quality score from 0.0 (poor) to 1.0 (excellent)
+- `suggested_key_columns::Vector{String}`: Column names that appear suitable as SDMX dimensions
+- `suggested_value_columns::Vector{String}`: Column names that appear suitable as SDMX measures
+- `suggested_time_columns::Vector{String}`: Column names that appear to contain time/date data
+
+# Examples
+```julia
+# Typically created through profile_source_data
+using DataFrames
+df = DataFrame(country=["USA", "Canada"], year=[2020, 2021], gdp=[21.4, 1.6])
+profile = profile_source_data(df)
+
+# Access overall metrics
+println("Quality: ", profile.data_quality_score)    # 1.0
+println("Dimensions: ", profile.row_count, "×", profile.column_count)  # 2×3
+
+# Access suggestions
+println("Time columns: ", profile.suggested_time_columns)    # ["year"]
+println("Value columns: ", profile.suggested_value_columns)  # ["gdp"]
+println("Key columns: ", profile.suggested_key_columns)      # ["country"]
+
+# Access individual column details
+for col in profile.columns
+    println(col.name, ": ", col.type, ", missing: ", col.missing_count)
+end
+```
+
+# See also
+[`profile_source_data`](@ref), [`ColumnProfile`](@ref), [`suggest_column_mappings`](@ref)
 """
 struct SourceDataProfile
     file_path::String
@@ -77,15 +128,35 @@ end
 """
     read_source_data(file_path::String; sheet=1, header_row=1) -> DataFrame
 
-Reads data from CSV or Excel files with automatic format detection.
+Reads data from CSV files, with optional Excel support when XLSX.jl is available.
+
+This function provides core CSV reading functionality and automatically detects
+when Excel support is available through the XLSX extension. For Excel files,
+users need to have XLSX.jl installed and loaded.
 
 # Arguments
 - `file_path::String`: Path to the data file
-- `sheet=1`: Excel sheet number or name (ignored for CSV)
+- `sheet=1`: Excel sheet number or name (ignored for CSV, requires XLSX.jl for Excel)
 - `header_row=1`: Row number containing column headers
 
 # Returns
 - `DataFrame`: The loaded data
+
+# Examples
+```julia
+# CSV files (always supported)
+df = read_source_data("data.csv")
+
+# Excel files (requires: using XLSX)
+using XLSX  # This loads the Excel extension
+df = read_source_data("data.xlsx", sheet="Sheet1", header_row=2)
+```
+
+# Throws
+- `ArgumentError`: If file doesn't exist or Excel support is requested but not available
+
+# See also
+[`read_source_data_excel`](@ref), [`profile_source_data`](@ref)
 """
 function read_source_data(file_path::String; sheet=1, header_row=1)
     if !isfile(file_path)
@@ -97,9 +168,14 @@ function read_source_data(file_path::String; sheet=1, header_row=1)
     if file_ext == ".csv"
         return CSV.read(file_path, DataFrame)
     elseif file_ext in [".xlsx", ".xls"]
-        return XLSX.readtable(file_path, sheet; first_row=header_row) |> DataFrame
+        # Check if Excel extension is available
+        if isdefined(SDMX, :read_source_data_excel)
+            return SDMX.read_source_data_excel(file_path; sheet=sheet, header_row=header_row)
+        else
+            error("Excel file support requires XLSX.jl. Please run: using XLSX")
+        end
     else
-        error("Unsupported file format: $file_ext. Supported formats: .csv, .xlsx, .xls")
+        error("Unsupported file format: $file_ext. Supported formats: .csv, .xlsx/.xls (with XLSX.jl)")
     end
 end
 
@@ -107,6 +183,40 @@ end
     detect_column_type_and_patterns(column_data::Vector) -> NamedTuple
 
 Analyzes a column to detect its type, patterns, and characteristics.
+
+This function examines the data in a column to automatically determine whether it's
+numeric, categorical, temporal, or textual, along with detailed pattern analysis.
+
+# Arguments
+- `column_data::Vector`: Vector of column values (may contain missing values)
+
+# Returns
+- `NamedTuple`: Analysis results containing:
+  - `type`: Detected Julia type of the column
+  - `is_categorical`: Whether the column appears to be categorical
+  - `categories`: Unique categories if categorical, otherwise `nothing`
+  - `is_temporal`: Whether the column contains time/date data
+  - `temporal_format`: Detected date format string if temporal
+  - `numeric_stats`: Statistical summary if numeric, otherwise `nothing`
+  - `string_patterns`: Array of detected string patterns
+
+# Examples
+```julia
+# Analyze a numeric column
+data = [1, 2, 3, missing, 4]
+result = detect_column_type_and_patterns(data)
+println(result.is_categorical)  # false
+println(result.numeric_stats)   # (min=1, max=4, mean=2.5, median=2.5)
+
+# Analyze a categorical column
+categories = ["Male", "Female", "Male", missing, "Female"]
+result = detect_column_type_and_patterns(categories)
+println(result.is_categorical)  # true
+println(result.categories)      # ["Male", "Female"]
+```
+
+# See also
+[`profile_column`](@ref), [`profile_source_data`](@ref)
 """
 function detect_column_type_and_patterns(column_data::Vector)
     # Remove missing values for analysis
@@ -235,7 +345,42 @@ end
 """
     profile_column(name::String, data::Vector) -> ColumnProfile
 
-Creates a detailed profile for a single column.
+Creates a detailed profile for a single column including type detection and statistical analysis.
+
+This function combines column metadata (name, missing values, unique counts) with
+detailed type and pattern analysis to create a comprehensive column profile.
+
+# Arguments
+- `name::String`: The name/identifier of the column
+- `data::Vector`: Vector containing the column data (may include missing values)
+
+# Returns
+- `ColumnProfile`: Comprehensive profile containing:
+  - Basic metadata (name, type, missing/unique counts)
+  - Sample values for inspection
+  - Categorical analysis (if applicable)
+  - Temporal pattern detection (if applicable)
+  - Numeric statistics (if applicable)
+  - String pattern analysis (if applicable)
+
+# Examples
+```julia
+# Profile a mixed data column
+column_data = [1, 2, missing, 3, 4]
+profile = profile_column("age", column_data)
+println(profile.missing_count)  # 1
+println(profile.unique_count)   # 4
+println(profile.is_categorical) # false
+
+# Profile a categorical column
+categories = ["A", "B", "A", "C", "B"]
+profile = profile_column("category", categories)
+println(profile.is_categorical) # true
+println(profile.categories)     # ["A", "B", "C"]
+```
+
+# See also
+[`detect_column_type_and_patterns`](@ref), [`profile_source_data`](@ref), [`ColumnProfile`](@ref)
 """
 function profile_column(name::String, data::Vector)
     missing_count = count(ismissing, data)
@@ -268,6 +413,46 @@ end
     profile_source_data(df::DataFrame, file_path::String = "") -> SourceDataProfile
 
 Creates a comprehensive profile of source data including column analysis and mapping suggestions.
+
+This function analyzes an entire DataFrame to understand its structure, data quality,
+and potential mappings to SDMX schema elements. It profiles each column individually
+and provides suggestions for dimension, measure, and time columns.
+
+# Arguments
+- `df::DataFrame`: The source DataFrame to profile
+- `file_path::String = ""`: Optional path to the source file (for metadata)
+
+# Returns
+- `SourceDataProfile`: Comprehensive analysis containing:
+  - File metadata (path, type, dimensions)
+  - Individual column profiles with type detection
+  - Data quality assessment score
+  - Suggested mappings to SDMX roles (dimensions, measures, time)
+
+# Examples
+```julia
+# Profile a simple dataset
+using DataFrames
+df = DataFrame(
+    country = ["USA", "Canada", "Mexico"],
+    year = [2020, 2021, 2022],
+    population = [331.0, 38.0, 128.0]
+)
+
+profile = profile_source_data(df, "population_data.csv")
+println(profile.data_quality_score)      # 1.0 (no missing values)
+println(profile.suggested_key_columns)   # ["country"]
+println(profile.suggested_time_columns)  # ["year"]
+println(profile.suggested_value_columns) # ["population"]
+
+# Access individual column analysis
+for col in profile.columns
+    println(col.name, ": ", col.type, ", categorical: ", col.is_categorical)
+end
+```
+
+# See also
+[`profile_column`](@ref), [`suggest_column_mappings`](@ref), [`SourceDataProfile`](@ref)
 """
 function profile_source_data(df::DataFrame, file_path::String = "")
     row_count = nrow(df)
@@ -328,13 +513,41 @@ end
 """
     suggest_column_mappings(source_profile::SourceDataProfile, target_schema::DataflowSchema) -> Dict{String, Vector{String}}
 
-Suggests mappings between source data columns and SDMX schema elements based on:
-- Column name similarity
-- Data type compatibility
-- Value pattern matching
-- Statistical properties
+Suggests intelligent mappings between source data columns and SDMX schema elements.
 
-Returns a dictionary mapping SDMX column names to potential source column matches, ranked by confidence.
+This function analyzes source data characteristics against SDMX schema requirements
+to suggest the most appropriate column mappings. It uses multiple heuristics including
+name similarity, data type compatibility, statistical properties, and pattern matching
+to rank potential mappings by confidence.
+
+# Arguments
+- `source_profile::SourceDataProfile`: Comprehensive analysis of source data structure
+- `target_schema::DataflowSchema`: SDMX schema defining required dimensions, measures, and attributes
+
+# Returns
+- `Dict{String, Vector{String}}`: Dictionary mapping SDMX schema column names to ranked lists of potential source column matches. Higher-ranked matches appear first in each vector.
+
+# Examples
+```julia
+# Get mapping suggestions
+source_profile = profile_source_data(my_dataframe)
+target_schema = extract_dataflow_schema(sdmx_xml)
+mappings = suggest_column_mappings(source_profile, target_schema)
+
+# Explore suggestions
+for (sdmx_col, candidates) in mappings
+    println("SDMX column '", sdmx_col, "' could map to:")
+    for candidate in candidates
+        println("  - ", candidate)
+    end
+end
+
+# Use top suggestion for each SDMX column
+final_mappings = Dict(sdmx_col => candidates[1] for (sdmx_col, candidates) in mappings if !isempty(candidates))
+```
+
+# See also
+[`profile_source_data`](@ref), [`extract_dataflow_schema`](@ref), [`SourceDataProfile`](@ref), [`DataflowSchema`](@ref)
 """
 function suggest_column_mappings(source_profile::SourceDataProfile, target_schema::DataflowSchema)
     mappings = Dict{String, Vector{String}}()
@@ -472,9 +685,45 @@ function suggest_column_mappings(source_profile::SourceDataProfile, target_schem
 end
 
 """
-    print_source_profile(profile::SourceDataProfile)
+    print_source_profile(profile::SourceDataProfile) -> Nothing
 
-Prints a human-readable summary of the source data profile.
+Prints a comprehensive, human-readable summary of the source data profile analysis.
+
+This function formats and displays the complete analysis results from source data profiling,
+including file metadata, column-by-column analysis, data quality metrics, and suggested
+mappings for SDMX transformation. Useful for data exploration and debugging.
+
+# Arguments
+- `profile::SourceDataProfile`: The source data profile to display
+
+# Returns
+- `Nothing`: Output is printed to stdout
+
+# Examples
+```julia
+# Profile and display analysis
+df = DataFrame(country=["USA", "Canada"], year=[2020, 2021], gdp=[21.4, 1.6])
+profile = profile_source_data(df, "gdp_data.csv")
+print_source_profile(profile)
+
+# Output will show:
+# === Source Data Profile ===
+# File: gdp_data.csv
+# Type: csv
+# Dimensions: 2 rows × 3 columns
+# Data Quality Score: 100.0%
+#
+# --- Column Analysis ---
+# country:
+#   Type: String
+#   Missing: 0 (0.0%)
+#   Unique values: 2
+#   → Categorical (2 categories shown): ["USA", "Canada"]
+# ...
+```
+
+# See also
+[`profile_source_data`](@ref), [`SourceDataProfile`](@ref)
 """
 function print_source_profile(profile::SourceDataProfile)
     println("=== Source Data Profile ===")

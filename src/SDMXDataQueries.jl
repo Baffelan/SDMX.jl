@@ -18,12 +18,18 @@ export construct_data_url, fetch_sdmx_data, query_sdmx_data, construct_sdmx_key
 """
     construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,String}) -> String
 
-Constructs a proper SDMX key using the dataflow schema to determine dimension order.
-Validates that filter dimensions exist in the schema.
+Constructs a proper SDMX key using dataflow schema dimension ordering.
+
+This function builds an SDMX data key by ordering dimensions according to the
+schema definition and validates that all filter dimensions exist in the schema.
+The resulting key follows SDMX standards with dot-separated dimension values.
 
 # Arguments
-- `schema`: DataflowSchema containing dimension definitions and order
-- `filters`: Dict mapping dimension names to filter values
+- `schema::DataflowSchema`: DataflowSchema containing dimension definitions and order
+- `filters::Dict{String,String}`: Dict mapping dimension names to filter values
+
+# Returns
+- `String`: Properly formatted SDMX key with dimensions in correct order
 
 # Examples
 ```julia
@@ -34,8 +40,14 @@ schema = extract_dataflow_schema(xml_doc)
 # Construct key with validation
 filters = Dict("FREQ" => "A", "GEO_PICT" => "TO")
 key = construct_sdmx_key(schema, filters)
-# Returns proper SDMX key based on schema dimension order
+# Returns: "A.TO..." (proper SDMX key based on schema dimension order)
 ```
+
+# Throws
+- `ArgumentError`: If any filter dimension is not found in the schema
+
+# See also
+[`construct_data_url`](@ref), [`get_dimension_order`](@ref)
 """
 function construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,String})
     # Get dimension order from schema
@@ -62,24 +74,28 @@ end
 
 
 """
-    construct_data_url(base_url::String, agency_id::String, dataflow_id::String, version::String;
-                      key::String="",
-                      dimension_filters::Dict{String,String}=Dict{String,String}(),
-                      start_period::Union{String,Nothing}=nothing,
-                      end_period::Union{String,Nothing}=nothing,
-                      dimension_at_observation::String="AllDimensions") -> String
+    construct_data_url(base_url::String, agency_id::String, dataflow_id::String, version::String; kwargs...) -> String
 
-Constructs an SDMX data query URL using functional parameters.
+Constructs SDMX data query URLs with flexible filtering options.
+
+This function builds complete SDMX REST API data query URLs according to the
+SDMX 2.1 standard, supporting various filtering approaches including pre-built
+keys, schema-based dimension filtering, and time period constraints.
 
 # Arguments
-- `base_url`: SDMX REST API base URL  
-- `agency_id`: Data provider agency (e.g., "SPC", "ECB", "OECD")
-- `dataflow_id`: Dataflow identifier (e.g., "DF_BP50", "EXR", "QNA")
-- `version`: Dataflow version (e.g., "1.0" or "latest")
-- `key`: Pre-constructed key string (if provided, dimension_filters ignored)
-- `dimension_filters`: Dict mapping dimension names to values
-- `start_period`, `end_period`: Time range filters
-- `dimension_at_observation`: How to structure response
+- `base_url::String`: SDMX REST API base URL  
+- `agency_id::String`: Data provider agency (e.g., "SPC", "ECB", "OECD")
+- `dataflow_id::String`: Dataflow identifier (e.g., "DF_BP50", "EXR", "QNA")
+- `version::String`: Dataflow version (e.g., "1.0" or "latest")
+- `schema::Union{DataflowSchema,Nothing}=nothing`: Optional schema for key construction
+- `key::String=""`: Pre-constructed key string (overrides dimension_filters)
+- `dimension_filters::Dict{String,String}=Dict{String,String}()`: Dimension name-value pairs
+- `start_period::Union{String,Nothing}=nothing`: Start date/period for time filtering
+- `end_period::Union{String,Nothing}=nothing`: End date/period for time filtering
+- `dimension_at_observation::String="AllDimensions"`: Response structure format
+
+# Returns
+- `String`: Complete SDMX REST API data query URL
 
 # Examples
 ```julia
@@ -91,21 +107,25 @@ url = construct_data_url(
     start_period="2022"
 )
 
-# Using dimension filters (automatically builds key)
+# Using dimension filters with schema validation
 url = construct_data_url(
     "https://sdw-wsrest.ecb.europa.eu/service",
     "ECB", "EXR", "1.0", 
+    schema=schema,
     dimension_filters=Dict("FREQ" => "D", "CURRENCY" => "USD"),
     start_period="2023-01"
 )
 
-# Simple case - let SDMX provider handle defaults
+# Simple case - get all data with time filtering
 url = construct_data_url(
     "https://stats-sdmx-disseminate.pacificdata.org/rest",
     "SPC", "DF_BP50", "1.0",
     start_period="2022"
 )
 ```
+
+# See also
+[`construct_sdmx_key`](@ref), [`fetch_sdmx_data`](@ref), [`query_sdmx_data`](@ref)
 """
 function construct_data_url(base_url::String, agency_id::String, dataflow_id::String, version::String;
                            schema::Union{DataflowSchema,Nothing}=nothing,
@@ -147,7 +167,18 @@ end
 """
     fetch_sdmx_data(url::String; timeout::Int=30) -> DataFrame
 
-Fetches SDMX data in CSV format from any SDMX provider and returns a cleaned DataFrame.
+Fetches and parses SDMX data in CSV format from REST API endpoints.
+
+This function retrieves SDMX data using the standard SDMX-CSV format, performs
+basic data cleaning and type conversion, and returns a structured DataFrame
+suitable for analysis. Works with any SDMX 2.1 compliant provider.
+
+# Arguments
+- `url::String`: Complete SDMX REST API data query URL
+- `timeout::Int=30`: HTTP timeout in seconds
+
+# Returns
+- `DataFrame`: Cleaned dataset with appropriate column types
 
 # Examples
 ```julia
@@ -156,12 +187,24 @@ url = construct_data_url("https://stats-sdmx-disseminate.pacificdata.org/rest",
                         "SPC", "DF_BP50", "1.0", start_period="2022")
 data = fetch_sdmx_data(url)
 
-# ECB exchange rates
+# ECB exchange rates with custom timeout
 url = construct_data_url("https://sdw-wsrest.ecb.europa.eu/service",
                         "ECB", "EXR", "1.0", 
                         dimension_filters=Dict("FREQ" => "D", "CURRENCY" => "USD"))
+data = fetch_sdmx_data(url; timeout=60)
+
+# Handle empty responses gracefully
 data = fetch_sdmx_data(url)
+if nrow(data) == 0
+    println("No data available for query")
+end
 ```
+
+# Throws
+- `ArgumentError`: For HTTP errors, invalid responses, or network issues
+
+# See also
+[`construct_data_url`](@ref), [`clean_sdmx_data`](@ref), [`query_sdmx_data`](@ref)
 """
 function fetch_sdmx_data(url::String; timeout::Int=30)
     # Set SDMX-CSV headers
@@ -192,8 +235,30 @@ end
 """
     clean_sdmx_data(data::DataFrame) -> DataFrame
 
-Performs basic cleaning and type conversion on SDMX-CSV data.
-Works with any SDMX provider's CSV format.
+Performs standardized cleaning and type conversion on SDMX-CSV data.
+
+This function applies standard SDMX data cleaning procedures including numeric
+conversion of observation values, string formatting of time periods, and removal
+of empty rows. Works with CSV output from any SDMX 2.1 compliant provider.
+
+# Arguments
+- `data::DataFrame`: Raw DataFrame from SDMX-CSV parsing
+
+# Returns
+- `DataFrame`: Cleaned DataFrame with standardized column types
+
+# Examples
+```julia
+# Manual cleaning after CSV import
+raw_data = CSV.read("sdmx_data.csv", DataFrame)
+cleaned_data = clean_sdmx_data(raw_data)
+
+# Automatic cleaning within fetch_sdmx_data
+data = fetch_sdmx_data(url)  # Cleaning applied automatically
+```
+
+# See also
+[`fetch_sdmx_data`](@ref)
 """
 function clean_sdmx_data(data::DataFrame)
     isempty(data) && return data
@@ -227,13 +292,26 @@ function clean_sdmx_data(data::DataFrame)
 end
 
 """
-    query_sdmx_data(base_url::String, agency_id::String, dataflow_id::String, version::String="latest";
-                    key::String="",
-                    dimension_filters::Dict{String,String}=Dict{String,String}(),
-                    start_period::Union{String,Nothing}=nothing,
-                    end_period::Union{String,Nothing}=nothing) -> DataFrame
+    query_sdmx_data(base_url::String, agency_id::String, dataflow_id::String, version::String="latest"; kwargs...) -> DataFrame
 
-Convenience function to query SDMX data from any provider in a single call.
+Convenience function for complete SDMX data retrieval in a single call.
+
+This high-level function combines URL construction and data fetching into a single
+operation, providing the most convenient way to retrieve SDMX data from any
+provider. It handles URL building, HTTP requests, and data cleaning automatically.
+
+# Arguments
+- `base_url::String`: SDMX REST API base URL
+- `agency_id::String`: Data provider agency identifier
+- `dataflow_id::String`: Dataflow identifier
+- `version::String="latest"`: Dataflow version
+- `key::String=""`: Pre-constructed SDMX key
+- `dimension_filters::Dict{String,String}=Dict{String,String}()`: Dimension filters
+- `start_period::Union{String,Nothing}=nothing`: Start date/period filter
+- `end_period::Union{String,Nothing}=nothing`: End date/period filter
+
+# Returns
+- `DataFrame`: Cleaned SDMX data ready for analysis
 
 # Examples
 ```julia
@@ -260,7 +338,14 @@ data = query_sdmx_data(
     key="AUS.GDP.CPC.Y.L",  # Australia, GDP, Current prices, Yearly, Levels
     start_period="2020"
 )
+
+# Handle potential empty results
+data = query_sdmx_data(base_url, agency, dataflow, version)
+println("Retrieved ", nrow(data), " observations")
 ```
+
+# See also
+[`construct_data_url`](@ref), [`fetch_sdmx_data`](@ref), [`summarize_data`](@ref)
 """
 function query_sdmx_data(base_url::String, agency_id::String, dataflow_id::String, version::String="latest";
                         key::String="",
@@ -280,7 +365,39 @@ end
 """
     summarize_data(data::DataFrame) -> Dict{String, Any}
 
-Provides a functional summary of SDMX data from any provider.
+Provides comprehensive statistical summary of SDMX datasets.
+
+This function generates a summary report containing key statistics about an SDMX
+dataset including observation counts, time range coverage, value statistics, and
+dimension value distributions. Works with data from any SDMX provider.
+
+# Arguments
+- `data::DataFrame`: SDMX dataset to summarize
+
+# Returns
+- `Dict{String, Any}`: Summary statistics including observation counts, time ranges, and dimension values
+
+# Examples
+```julia
+data = query_sdmx_data(base_url, "SPC", "DF_BP50", "1.0")
+summary = summarize_data(data)
+
+println("Total observations: ", summary["total_observations"])
+println("Time range: ", summary["time_range"])
+if haskey(summary, "obs_stats")
+    println("Value range: ", summary["obs_stats"].min, " - ", summary["obs_stats"].max)
+end
+
+# Check dimensions present in data
+for (key, values) in summary
+    if isa(values, Vector) && !isempty(values)
+        println(key, ": ", length(values), " unique values")
+    end
+end
+```
+
+# See also
+[`query_sdmx_data`](@ref), [`clean_sdmx_data`](@ref)
 """
 function summarize_data(data::DataFrame)
     isempty(data) && return Dict("total_observations" => 0)

@@ -27,7 +27,32 @@ export ValidationResult, ValidationRule, ValidationSeverity, SDMXValidator,
 """
     ValidationSeverity
 
-Enumeration for validation issue severity levels.
+Enumeration for validation issue severity levels in SDMX data validation.
+
+This enum defines the severity levels used to classify validation issues, helping
+users prioritize which problems to address first. Higher severity levels indicate
+more critical issues that prevent successful SDMX data processing.
+
+# Values
+- `INFO = 1`: Informational messages about data characteristics or suggestions
+- `WARNING = 2`: Potential issues that may cause problems but don't prevent processing
+- `ERROR = 3`: Clear violations of SDMX standards that should be fixed
+- `CRITICAL = 4`: Severe violations that prevent any further processing
+
+# Examples
+```julia
+# Create validation issues with different severities
+info_issue = ValidationIssue("Data completeness is 95%", INFO)
+warning_issue = ValidationIssue("Column name doesn't follow convention", WARNING)
+error_issue = ValidationIssue("Required column missing", ERROR)
+critical_issue = ValidationIssue("Invalid data structure", CRITICAL)
+
+# Filter issues by severity
+critical_issues = filter(issue -> issue.severity == CRITICAL, all_issues)
+```
+
+# See also
+[`ValidationRule`](@ref), [`ValidationResult`](@ref), [`SDMXValidator`](@ref)
 """
 @enum ValidationSeverity begin
     INFO = 1
@@ -39,7 +64,55 @@ end
 """
     ValidationRule
 
-Defines a single validation rule with its criteria and evaluation logic.
+Defines a single validation rule with its criteria, evaluation logic, and optional auto-fix capabilities.
+
+This struct encapsulates a complete validation rule that can be applied to SDMX data,
+including the logic to evaluate the rule, determine severity of violations, and
+optionally provide automatic fixes for common issues.
+
+# Fields
+- `rule_id::String`: Unique identifier for the validation rule
+- `rule_name::String`: Human-readable name of the validation rule
+- `description::String`: Detailed description of what the rule checks
+- `severity::ValidationSeverity`: Severity level for violations of this rule
+- `category::String`: Rule category ("structure", "content", "quality", "compliance")
+- `evaluation_function::Function`: Function that evaluates the rule against data
+- `auto_fix_available::Bool`: Whether automatic fixing is available for violations
+- `auto_fix_function::Union{Function, Nothing}`: Function to automatically fix violations, if available
+
+# Examples
+```julia
+# Create a structure validation rule
+structure_rule = ValidationRule(
+    "REQ_COLS_001",
+    "Required Columns Present",
+    "Checks that all required SDMX columns are present",
+    ERROR,
+    "structure",
+    (data, schema) -> check_required_columns(data, schema),
+    false,
+    nothing
+)
+
+# Create a rule with auto-fix capability
+format_rule = ValidationRule(
+    "FMT_001",
+    "Column Name Format",
+    "Ensures column names follow SDMX conventions",
+    WARNING,
+    "content",
+    (data, schema) -> check_column_format(data),
+    true,
+    (data) -> fix_column_names(data)
+)
+
+# Use in validator
+validator = create_validator(schema)
+add_custom_validation_rule(validator, structure_rule)
+```
+
+# See also
+[`ValidationSeverity`](@ref), [`SDMXValidator`](@ref), [`add_custom_validation_rule`](@ref)
 """
 struct ValidationRule
     rule_id::String
@@ -55,7 +128,41 @@ end
 """
     ValidationIssue
 
-Represents a single validation issue found in the data.
+Represents a single validation issue found during SDMX data validation.
+
+This struct captures detailed information about a specific validation problem,
+including its severity, location, affected data, and potential solutions.
+
+# Fields
+- `rule_id::String`: Identifier of the validation rule that detected this issue
+- `severity::ValidationSeverity`: Severity level of the issue (INFO, WARNING, ERROR, CRITICAL)
+- `message::String`: Human-readable description of the validation issue
+- `location::String`: Location where issue was found (column name, row range, etc.)
+- `affected_rows::Vector{Int}`: Row numbers that contain the validation issue
+- `suggested_fix::String`: Recommended action to resolve the issue
+- `auto_fixable::Bool`: Whether the issue can be automatically corrected
+
+# Examples
+```julia
+# Create a validation issue for missing required column
+issue = ValidationIssue(
+    "required_columns",
+    ERROR,
+    "Missing required column: TIME_PERIOD",
+    "structure",
+    Int[],
+    "Add TIME_PERIOD column with appropriate time values",
+    false
+)
+
+# Check if issue can be automatically fixed
+if issue.auto_fixable
+    println("This issue can be auto-fixed: ", issue.suggested_fix)
+end
+```
+
+# See also
+[`ValidationRule`](@ref), [`ValidationResult`](@ref), [`ValidationSeverity`](@ref)
 """
 struct ValidationIssue
     rule_id::String
@@ -70,8 +177,46 @@ end
 """
     ValidationResult
 
-Complete validation results including issues, statistics, and recommendations.
-Simple struct following Julia conventions.
+Comprehensive validation results containing all validation issues, statistics, and actionable recommendations.
+
+This struct represents the complete output of SDMX-CSV validation, providing
+detailed analysis of data quality, compliance status, and performance metrics
+along with specific recommendations for addressing any identified issues.
+
+# Fields
+- `dataset_name::String`: Name or identifier of the validated dataset
+- `validation_timestamp::String`: ISO timestamp when validation was performed
+- `target_schema::DataflowSchema`: SDMX dataflow schema used for validation
+- `total_rows::Int`: Total number of rows in the validated dataset
+- `total_columns::Int`: Total number of columns in the validated dataset
+- `issues::Vector{ValidationIssue}`: All validation issues found, ordered by severity
+- `statistics::Dict{String, Any}`: Detailed validation statistics and metrics
+- `overall_score::Float64`: Overall compliance score (0.0-1.0, higher is better)
+- `compliance_status::String`: Overall compliance status ("compliant", "minor_issues", "major_issues", "non_compliant")
+- `recommendations::Vector{String}`: Prioritized list of actionable recommendations
+- `performance_metrics::Dict{String, Float64}`: Validation performance timing and efficiency metrics
+
+# Examples
+```julia
+# Use validation result
+validator = create_validator(schema)
+result = validate_sdmx_csv(validator, data, "my_dataset")
+
+# Check overall compliance
+println("Dataset score: ", result.overall_score * 100, "%")
+println("Status: ", result.compliance_status)
+
+# Show critical issues
+critical_issues = filter(i -> i.severity == CRITICAL, result.issues)
+println("Critical issues: ", length(critical_issues))
+
+# Generate formatted report
+report = generate_validation_report(result, format="text")
+println(report)
+```
+
+# See also
+[`ValidationIssue`](@ref), [`validate_sdmx_csv`](@ref), [`generate_validation_report`](@ref)
 """
 struct ValidationResult
     dataset_name::String
@@ -94,7 +239,51 @@ end
                            compliance_status::String, recommendations::Vector{String},
                            performance_metrics::Dict{String, Float64}) -> ValidationResult
 
-Creates a ValidationResult with functional validation of parameters.
+Creates a ValidationResult with comprehensive parameter validation and timestamp generation.
+
+This constructor function validates all input parameters for correctness before
+creating the ValidationResult struct, ensuring data integrity and preventing
+invalid validation results from being created.
+
+# Arguments
+- `dataset_name::String`: Name identifier for the validated dataset
+- `target_schema::DataflowSchema`: SDMX schema used as validation target
+- `total_rows::Int`: Total number of rows (must be non-negative)
+- `total_columns::Int`: Total number of columns (must be non-negative)
+- `issues::Vector{ValidationIssue}`: Collection of all validation issues found
+- `statistics::Dict{String, Any}`: Validation statistics and metrics
+- `overall_score::Float64`: Overall compliance score (must be 0.0-1.0)
+- `compliance_status::String`: Must be one of: "compliant", "minor_issues", "major_issues", "non_compliant"
+- `recommendations::Vector{String}`: List of actionable recommendations
+- `performance_metrics::Dict{String, Float64}`: Performance timing and efficiency data
+
+# Returns
+- `ValidationResult`: Fully validated result struct with auto-generated timestamp
+
+# Examples
+```julia
+# Create validation result with proper validation
+result = create_validation_result(
+    "test_dataset",
+    schema,
+    1000,  # rows
+    15,    # columns
+    issues_vector,
+    Dict("memory_usage_mb" => 12.5),
+    0.85,  # 85% compliance score
+    "minor_issues",
+    ["Fix missing TIME_PERIOD values"],
+    Dict("total_validation_time_ms" => 150.0)
+)
+```
+
+# Throws
+- `ArgumentError`: If overall_score is outside 0.0-1.0 range
+- `ArgumentError`: If compliance_status is not a valid status
+- `ArgumentError`: If total_rows or total_columns are negative
+
+# See also
+[`ValidationResult`](@ref), [`validate_score_range`](@ref), [`validate_compliance_status`](@ref)
 """
 function create_validation_result(dataset_name::String, target_schema::DataflowSchema, 
                                  total_rows::Int, total_columns::Int, issues::Vector{ValidationIssue},
@@ -124,7 +313,37 @@ end
 """
     validate_score_range(score::Float64) -> Nothing
 
-Validates that the overall score is between 0.0 and 1.0.
+Validates that the overall compliance score is within the valid range of 0.0 to 1.0.
+
+This validation function ensures that compliance scores are meaningful and can be
+interpreted as percentages (0% to 100% compliance). Throws an error for invalid scores.
+
+# Arguments
+- `score::Float64`: The compliance score to validate
+
+# Returns
+- `Nothing`: Function returns nothing on successful validation
+
+# Examples
+```julia
+# Valid scores pass silently
+validate_score_range(0.75)  # OK - 75% compliance
+validate_score_range(1.0)   # OK - 100% compliance
+validate_score_range(0.0)   # OK - 0% compliance
+
+# Invalid scores throw errors
+try
+    validate_score_range(1.5)  # Error: > 1.0
+catch e
+    println("Invalid score: ", e)
+end
+```
+
+# Throws
+- `ArgumentError`: If score is less than 0.0 or greater than 1.0
+
+# See also
+[`create_validation_result`](@ref), [`validate_compliance_status`](@ref)
 """
 function validate_score_range(score::Float64)
     0.0 <= score <= 1.0 || throw(ArgumentError("overall_score must be between 0.0 and 1.0, got $score"))
@@ -133,7 +352,38 @@ end
 """
     validate_compliance_status(status::String) -> Nothing
 
-Validates that the compliance status is one of the allowed values.
+Validates that the compliance status string is one of the four allowed SDMX compliance levels.
+
+Ensures that only valid compliance status values are used, maintaining consistency
+across all validation results and enabling proper categorization of datasets.
+
+# Arguments
+- `status::String`: The compliance status to validate
+
+# Returns
+- `Nothing`: Function returns nothing on successful validation
+
+# Examples
+```julia
+# Valid statuses pass silently
+validate_compliance_status("compliant")      # OK - no issues
+validate_compliance_status("minor_issues")   # OK - few warnings
+validate_compliance_status("major_issues")   # OK - many errors
+validate_compliance_status("non_compliant")  # OK - critical failures
+
+# Invalid statuses throw errors
+try
+    validate_compliance_status("partially_ok")  # Error: not allowed
+catch e
+    println("Invalid status: ", e)
+end
+```
+
+# Throws
+- `ArgumentError`: If status is not one of: "compliant", "minor_issues", "major_issues", "non_compliant"
+
+# See also
+[`create_validation_result`](@ref), [`validate_score_range`](@ref)
 """
 function validate_compliance_status(status::String)
     allowed_statuses = ["compliant", "minor_issues", "major_issues", "non_compliant"]
@@ -143,7 +393,39 @@ end
 """
     validate_row_column_counts(rows::Int, columns::Int) -> Nothing
 
-Validates that row and column counts are non-negative.
+Validates that dataset row and column counts are non-negative integers.
+
+Ensures that dataset dimensions are logical and meaningful, preventing
+negative counts that would indicate data processing errors or invalid inputs.
+
+# Arguments
+- `rows::Int`: Number of rows in the dataset
+- `columns::Int`: Number of columns in the dataset
+
+# Returns
+- `Nothing`: Function returns nothing on successful validation
+
+# Examples
+```julia
+# Valid counts pass silently
+validate_row_column_counts(1000, 15)  # OK - normal dataset
+validate_row_column_counts(0, 0)      # OK - empty dataset
+validate_row_column_counts(1, 1)      # OK - minimal dataset
+
+# Invalid counts throw errors
+try
+    validate_row_column_counts(-1, 5)  # Error: negative rows
+catch e
+    println("Invalid row count: ", e)
+end
+```
+
+# Throws
+- `ArgumentError`: If rows is negative
+- `ArgumentError`: If columns is negative
+
+# See also
+[`create_validation_result`](@ref), [`ValidationResult`](@ref)
 """
 function validate_row_column_counts(rows::Int, columns::Int)
     rows >= 0 || throw(ArgumentError("total_rows must be non-negative, got $rows"))
@@ -154,7 +436,46 @@ end
 """
     SDMXValidator
 
-Main validation engine with configurable rules and settings.
+Main validation engine with configurable rules and settings for comprehensive SDMX data validation.
+
+This mutable struct serves as the central validation engine, containing all the rules,
+configuration settings, and schema information needed to validate SDMX-CSV datasets.
+It supports both strict and performance modes, custom thresholds, and auto-fixing capabilities.
+
+# Fields
+- `schema::DataflowSchema`: The target SDMX dataflow schema for validation
+- `validation_rules::Dict{String, ValidationRule}`: Collection of validation rules indexed by rule ID
+- `strict_mode::Bool`: If true, applies stricter validation criteria with lower tolerance for issues
+- `performance_mode::Bool`: If true, skips expensive validation checks for large datasets
+- `custom_thresholds::Dict{String, Float64}`: Custom threshold values for validation rules
+- `auto_fix_enabled::Bool`: Whether automatic issue fixing is enabled
+
+# Examples
+```julia
+# Create validator with default settings
+validator = create_validator(schema)
+
+# Validate a dataset
+result = validator(data, "my_dataset")
+
+# Create validator with custom settings
+validator = create_validator(
+    schema, 
+    strict_mode=true, 
+    performance_mode=false,
+    auto_fix_enabled=true
+)
+
+# Add custom validation rules
+custom_rule = ValidationRule(
+    "custom_001", "Custom Check", "My custom validation",
+    WARNING, "quality", my_validation_function, false, nothing
+)
+add_custom_validation_rule(validator, custom_rule)
+```
+
+# See also
+[`create_validator`](@ref), [`validate_sdmx_csv`](@ref), [`ValidationRule`](@ref)
 """
 mutable struct SDMXValidator
     schema::DataflowSchema
@@ -199,7 +520,48 @@ end
                     performance_mode=false,
                     auto_fix_enabled=true) -> SDMXValidator
 
-Creates a validator with default rules for the given schema.
+Creates a comprehensive SDMX validator with default validation rules and configurable behavior.
+
+This constructor function creates a fully configured SDMXValidator instance loaded with
+all standard SDMX validation rules. The validator can be customized with different
+modes and settings to suit specific validation requirements.
+
+# Arguments
+- `schema::DataflowSchema`: The target SDMX dataflow schema that defines validation requirements
+
+# Keyword Arguments  
+- `strict_mode=false`: Enable strict validation with lower tolerance for issues
+- `performance_mode=false`: Enable performance mode that skips expensive checks for large datasets
+- `auto_fix_enabled=true`: Enable automatic fixing of correctable validation issues
+
+# Returns
+- `SDMXValidator`: Configured validator ready for dataset validation
+
+# Examples
+```julia
+# Create basic validator
+validator = create_validator(schema)
+result = validator(data)
+
+# Create strict validator for critical data
+strict_validator = create_validator(
+    schema,
+    strict_mode=true,
+    performance_mode=false,
+    auto_fix_enabled=false
+)
+
+# Create performance-optimized validator for large datasets
+fast_validator = create_validator(
+    schema,
+    strict_mode=false,
+    performance_mode=true,
+    auto_fix_enabled=true
+)
+```
+
+# See also
+[`SDMXValidator`](@ref), [`validate_sdmx_csv`](@ref), [`load_default_validation_rules!`](@ref)
 """
 function create_validator(schema::DataflowSchema; 
                          strict_mode=false, 
@@ -226,9 +588,45 @@ function create_validator(schema::DataflowSchema;
 end
 
 """
-    load_default_validation_rules!(validator::SDMXValidator)
+    load_default_validation_rules!(validator::SDMXValidator) -> Nothing
 
-Loads comprehensive default validation rules into the validator.
+Loads comprehensive default validation rules into the validator for complete SDMX compliance checking.
+
+This function populates the validator with all standard SDMX validation rules covering
+structure, content, quality, and compliance validation. Rules are categorized by type
+and include both mandatory requirements and best practices.
+
+# Arguments
+- `validator::SDMXValidator`: The validator instance to populate with rules
+
+# Returns
+- `Nothing`: Function modifies the validator in-place
+
+# Examples
+```julia
+# Create empty validator and load default rules
+validator = SDMXValidator(schema, Dict(), false, false, Dict(), true)
+load_default_validation_rules!(validator)
+
+# Validator now contains all standard rules
+println("Loaded ", length(validator.validation_rules), " validation rules")
+
+# Standard rule categories loaded:
+# - Structure: required columns, data types, naming conventions
+# - Content: codelist compliance, time formats, observation values
+# - Quality: missing values, duplicates, outlier detection
+# - Compliance: SDMX-CSV format requirements
+```
+
+# Rule Categories
+The function loads rules in these categories:
+- **Structure**: Column presence, data types, naming conventions
+- **Content**: Codelist compliance, time period formats, observation value validity
+- **Quality**: Missing value analysis, duplicate detection, outlier identification
+- **Compliance**: SDMX-CSV format adherence
+
+# See also
+[`create_validator`](@ref), [`ValidationRule`](@ref), [`add_custom_validation_rule`](@ref)
 """
 function load_default_validation_rules!(validator::SDMXValidator)
     schema = validator.schema
@@ -367,7 +765,49 @@ end
                       data::DataFrame,
                       dataset_name::String = "unknown") -> ValidationResult
 
-Performs comprehensive validation of SDMX-CSV data.
+Performs comprehensive validation of SDMX-CSV data against all configured validation rules.
+
+This is the main validation function that executes all validation rules in the validator,
+collects issues, calculates compliance metrics, generates recommendations, and produces
+a complete validation report with performance statistics.
+
+# Arguments
+- `validator::SDMXValidator`: Configured validator containing rules and schema
+- `data::DataFrame`: The SDMX-CSV dataset to validate
+- `dataset_name::String = "unknown"`: Name identifier for the dataset in reports
+
+# Returns
+- `ValidationResult`: Comprehensive validation results including issues, scores, and recommendations
+
+# Examples
+```julia
+# Basic validation
+validator = create_validator(schema)
+result = validate_sdmx_csv(validator, data, "my_dataset")
+
+# Check results
+println("Overall score: ", result.overall_score * 100, "%")
+println("Status: ", result.compliance_status)
+println("Issues found: ", length(result.issues))
+
+# Generate report
+report = generate_validation_report(result)
+println(report)
+
+# Handle validation issues
+critical_issues = filter(i -> i.severity == CRITICAL, result.issues)
+if !isempty(critical_issues)
+    println("CRITICAL: Dataset cannot be published")
+end
+```
+
+# Performance Notes
+- Validation time scales with dataset size and number of enabled rules
+- Performance mode skips expensive checks for large datasets
+- Rule execution is timed individually for performance analysis
+
+# See also
+[`SDMXValidator`](@ref), [`ValidationResult`](@ref), [`generate_validation_report`](@ref)
 """
 function validate_sdmx_csv(validator::SDMXValidator, 
                           data::DataFrame,
