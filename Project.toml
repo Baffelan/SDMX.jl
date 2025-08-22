@@ -1,6 +1,6 @@
 name = "SDMX"
 uuid = "01234567-89ab-cdef-0123-456789abcdef"
-authors = ["Your Name <your@email.com>"]
+authors = ["Giulio Valentino Dalla Riva <me@gvdallariva.net>"]
 version = "0.1.0"
 
 [deps]
