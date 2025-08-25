@@ -17,9 +17,6 @@ using EzXML
 using ..SDMX: SDMXElement, DimensionElement, AttributeElement, MeasureElement, 
               ConceptElement, CodelistElement, AvailabilityElement, TimeElement
 
-export extract_sdmx_element, get_xpath_patterns, extract_element_fields,
-       parse_sdmx_document_generated, benchmark_parsing_performance
-
 # =================== HELPER FUNCTIONS ===================
 
 """

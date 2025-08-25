@@ -19,10 +19,6 @@ Features:
 using DataFrames, Statistics, Dates, CSV
 using EzXML, HTTP, JSON3
 
-export ValidationResult, ValidationRule, ValidationSeverity, SDMXValidator,
-       create_validator, validate_sdmx_csv, validate_structure, validate_content,
-       validate_quality, generate_validation_report, fix_validation_issues,
-       add_custom_validation_rule, get_validation_summary, export_validation_results
 
 """
     ValidationSeverity
@@ -1044,16 +1040,42 @@ end
 Checks if a time string follows valid SDMX time formats.
 """
 function is_valid_time_format(time_str::String)
-    # Common SDMX time formats
-    time_patterns = [
-        r"^\d{4}$",                    # YYYY
-        r"^\d{4}-\d{2}$",             # YYYY-MM
-        r"^\d{4}-Q[1-4]$",            # YYYY-Q1
-        r"^\d{4}-\d{2}-\d{2}$",       # YYYY-MM-DD
-        r"^\d{4}-W\d{2}$"             # YYYY-W01
-    ]
+    # Check for year only format (YYYY)
+    if occursin(r"^\d{4}$", time_str)
+        year = tryparse(Int, time_str)
+        return year !== nothing && year >= 1900 && year <= 2100  # Reasonable year range
+    end
     
-    return any(occursin(pattern, time_str) for pattern in time_patterns)
+    # Check for year-month format (YYYY-MM) using Julia's Date parsing
+    if occursin(r"^\d{4}-\d{2}$", time_str)
+        return tryparse(Date, time_str, DateFormat("yyyy-mm")) !== nothing
+    end
+    
+    # Check for year-quarter format (YYYY-Q[1-4])
+    if occursin(r"^\d{4}-Q[1-4]$", time_str)
+        return true  # Regex already validates Q1-Q4
+    end
+    
+    # Check for year-month-day format (YYYY-MM-DD) using Julia's Date parsing
+    # This properly handles leap years and month-specific day counts
+    if occursin(r"^\d{4}-\d{2}-\d{2}$", time_str)
+        return tryparse(Date, time_str, DateFormat("yyyy-mm-dd")) !== nothing
+    end
+    
+    # Check for year-week format (YYYY-Www)
+    if occursin(r"^\d{4}-W\d{2}$", time_str)
+        week_str = time_str[7:8]
+        week = tryparse(Int, week_str)
+        return week !== nothing && week >= 1 && week <= 53
+    end
+    
+    # Check for datetime formats (YYYY-MM-DDTHH:MM:SS)
+    if occursin(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", time_str)
+        # Try parsing as DateTime
+        return tryparse(DateTime, time_str[1:19], DateFormat("yyyy-mm-ddTHH:MM:SS")) !== nothing
+    end
+    
+    return false
 end
 
 """

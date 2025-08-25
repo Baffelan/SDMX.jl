@@ -13,7 +13,6 @@ Features:
 
 using DataFrames, CSV, HTTP, Statistics
 
-export construct_data_url, fetch_sdmx_data, query_sdmx_data, construct_sdmx_key
 
 """
     construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,String}) -> String

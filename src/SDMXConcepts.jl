@@ -4,7 +4,6 @@ Concept extraction functions for SDMX.jl
 
 using EzXML, DataFrames, HTTP
 
-export extract_concepts
 
 """
     extract_concepts(doc::EzXML.Document) -> DataFrame

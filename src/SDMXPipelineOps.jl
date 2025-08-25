@@ -8,9 +8,10 @@ leveraging Julia's operator overloading and method dispatch capabilities.
 using DataFrames
 using Base.Threads
 
-export ⊆, ⇒, validate_with, profile_with, map_with, generate_with, chain
 
 # =================== CUSTOM OPERATORS ===================
+
+import Base: ⊆
 
 """
     ⊆(data::DataFrame, schema::DataflowSchema) -> Bool

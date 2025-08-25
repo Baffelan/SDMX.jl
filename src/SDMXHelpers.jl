@@ -2,7 +2,6 @@
 General helper functions for SDMX.jl
 """
 
-export is_url, normalize_sdmx_url, fetch_sdmx_xml
 
 """
     is_url(input::String) -> Bool
@@ -187,15 +186,19 @@ function fetch_sdmx_xml(input::String)
         normalized_url = normalize_sdmx_url(input)
         
         response = HTTP.get(normalized_url)
-        @assert response.status == 200 "HTTP request failed with status: $(response.status) for URL: $normalized_url"
+        @assert response.status == 200 string("HTTP request failed with status: ", response.status, " for URL: ", normalized_url)
         
         xml_string = String(response.body)
         @assert !isempty(xml_string) "HTTP response body cannot be empty"
         
         return xml_string
-    else
+    elseif isfile(input)
+        # It's a file path - read the file
+        return read(input, String)
+    elseif occursin("<", input)
         # It's XML content - validate and return
-        @assert occursin("<", input) "Input doesn't appear to be valid XML or URL"
         return input
+    else
+        error("Input doesn't appear to be valid XML, URL, or file path")
     end
 end 

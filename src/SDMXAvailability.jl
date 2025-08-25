@@ -18,10 +18,6 @@ Features:
 
 using EzXML, DataFrames, HTTP, Dates
 
-export AvailabilityConstraint, DimensionAvailability, TimeAvailability,
-       extract_availability, get_available_values, get_time_coverage, compare_schema_availability,
-       get_data_coverage_summary, find_data_gaps
-
 """
     TimeAvailability
 

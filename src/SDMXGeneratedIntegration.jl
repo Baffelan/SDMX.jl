@@ -10,7 +10,6 @@ using EzXML
 using ..SDMX: SDMXElement, DimensionElement, AttributeElement, MeasureElement, 
               extract_sdmx_element, get_xpath_patterns
 
-export demonstrate_generated_parsing, migration_guide
 
 """
     demonstrate_generated_parsing() -> Nothing

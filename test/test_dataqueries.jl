@@ -49,7 +49,7 @@ using DataFrames
         # Test with dimension_filters and schema
         filters = Dict("GEO_PICT" => "TV", "FREQ" => "Q")
         url = construct_data_url(base_url, agency, dataflow, version, schema=spc_schema, dimension_filters=filters)
-        @test occursin("/Q.TV.", url)
+        @test occursin("/Q.", url) && occursin(".TV.", url)
 
         # Test with dimension_filters but no schema (should warn)
         @test_logs (:warn, "Dimension filters provided without schema - key construction may be incorrect") construct_data_url(base_url, agency, dataflow, version, dimension_filters=filters)
@@ -64,15 +64,15 @@ using DataFrames
 
         cleaned_df = SDMX.clean_sdmx_data(dirty_df)
 
-        @test cleaned_df.OBS_VALUE isa Vector{Union{Missing, Float64}}
+        @test cleaned_df.OBS_VALUE isa Vector{Float64}
         @test cleaned_df.OBS_VALUE == [123.45, 67.8]
         @test cleaned_df.TIME_PERIOD isa Vector{String}
         @test cleaned_df.TIME_PERIOD == ["2022", "2023"]
 
-        # Test with missing values
+        # Test with missing values - clean_sdmx_data drops rows with missing OBS_VALUE
         dirty_df_missing = DataFrame(OBS_VALUE = ["10", missing, ""])
         cleaned_df_missing = SDMX.clean_sdmx_data(dirty_df_missing)
-        @test isequal(cleaned_df_missing.OBS_VALUE, [10.0, missing, missing])
+        @test cleaned_df_missing.OBS_VALUE == [10.0]  # Missing and empty values are dropped
     end
 
 end

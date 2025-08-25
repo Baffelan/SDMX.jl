@@ -10,8 +10,16 @@ using DataFrames
 
     compliant_df = DataFrame(
         FREQ = ["A"],
-        GEO_PICT = ["FJ"],
         INDICATOR = ["BP50_01"],
+        GEO_PICT = ["FJ"],
+        SEX = ["_T"],
+        AGE = ["_T"],
+        URBANIZATION = ["_T"],
+        INCOME = ["_T"],
+        EDUCATION = ["_T"],
+        OCCUPATION = ["_T"],
+        COMPOSITE_BREAKDOWN = ["_T"],
+        DISABILITY = ["_T"],
         TIME_PERIOD = ["2022"],
         OBS_VALUE = [1.0],
         UNIT_MEASURE = ["USD"], # Add an optional attribute
@@ -30,7 +38,7 @@ using DataFrames
         profile = compliant_df |> profiler
         @test profile isa SourceDataProfile
         @test profile.row_count == 1
-        @test profile.column_count == 7
+        @test profile.column_count == 15
     end
 
     @testset "tap" begin

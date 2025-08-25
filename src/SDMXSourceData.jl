@@ -12,7 +12,6 @@ This module handles reading and analyzing source data files (CSV, Excel) to:
 using DataFrames, CSV, Statistics, Dates
 using EzXML, HTTP
 
-export SourceDataProfile, read_source_data, profile_source_data, suggest_column_mappings
 
 """
     ColumnProfile
