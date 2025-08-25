@@ -1,10 +1,16 @@
 # SDMX.jl
 
-[![Julia](https://img.shields.io/badge/julia-1.11+-blue.svg)](https://julialang.org)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-108%20passing-success)](test/)
+[![Build Status](https://github.com/yourusername/julia_sdmx/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/yourusername/julia_sdmx/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/yourusername/julia_sdmx/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/julia_sdmx)
+[![Aqua](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+[![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
 
 Core Julia package for SDMX (Statistical Data and Metadata eXchange) processing. Extract and analyze structural metadata from SDMX-ML documents, including codelists, concepts, dataflow schemas, and data availability constraints.
+
+## Requirements
+
+- Julia 1.11 or higher
+- See [Project.toml](Project.toml) for package dependencies
 
 ## Features
 

@@ -9,6 +9,11 @@ using EzXML
 fixture_path(filename) = joinpath(@__DIR__, "fixtures", filename)
 
 @testset "SDMX.jl" begin
+    # Run Aqua quality checks first
+    @testset "Code Quality (Aqua.jl)" begin
+        include("aqua.jl")
+    end
+    
     @testset "Dataflows" begin
         include("test_dataflows.jl")
     end
