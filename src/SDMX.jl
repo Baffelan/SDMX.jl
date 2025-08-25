@@ -55,9 +55,8 @@ export read_source_data, profile_source_data, suggest_column_mappings, print_sou
 
 # === DATA VALIDATION SYSTEM ===
 # Comprehensive validation framework for SDMX data quality and compliance
-export create_validator, validate_sdmx_csv, validate_structure, validate_content, validate_quality
-export generate_validation_report, fix_validation_issues, add_custom_validation_rule
-export get_validation_summary, export_validation_results, preview_validation_output
+export create_validator, validate_sdmx_csv
+export generate_validation_report, preview_validation_output
 
 # === DATA QUERY & RETRIEVAL ===
 # Functions for constructing queries and retrieving SDMX data from APIs
@@ -65,7 +64,7 @@ export construct_data_url, fetch_sdmx_data, query_sdmx_data, construct_sdmx_key,
 
 # === PIPELINE OPERATIONS & WORKFLOW ===
 # Functional programming interface for chaining SDMX operations
-export validate_with, profile_with, map_with, generate_with, chain, pipeline
+export validate_with, profile_with, chain, pipeline
 export tap, branch, parallel_map, SDMXPipeline
 
 # === PIPELINE OPERATORS (Unicode) ===
