@@ -1,233 +1,247 @@
-# SDMX.jl - Statistical Data and Metadata eXchange for Julia
+# SDMX.jl
 
 [![Julia](https://img.shields.io/badge/julia-1.11+-blue.svg)](https://julialang.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-108%20passing-success)](test/)
 
-A Julia package for reading and parsing SDMX (Statistical Data and Metadata eXchange) structural metadata into handy structures like DataFrames. Extract codelists, concepts, and data availability constraints from SDMX-ML XML documents.
+Core Julia package for SDMX (Statistical Data and Metadata eXchange) processing. Extract and analyze structural metadata from SDMX-ML documents, including codelists, concepts, dataflow schemas, and data availability constraints.
 
-## 📦 Installation
+## Features
+
+- 📊 **SDMX Schema Extraction**: Parse dataflow definitions, dimensions, and measures
+- 📝 **Codelist Management**: Extract and filter codelists with availability constraints
+- 🔍 **Data Profiling**: Analyze source data structure and quality
+- 🎯 **Intelligent Mapping**: Suggest column mappings between source data and SDMX schemas
+- ✅ **Validation**: Comprehensive SDMX compliance checking
+- 🔗 **Pipeline Operations**: Composable data transformation workflows
+
+## Installation
 
 ```julia
 using Pkg
+Pkg.add(url="https://github.com/yourusername/SDMX.jl")
+# or for development
 Pkg.develop(path="path/to/SDMX.jl")
 ```
 
-## 🎯 Quick Start
-
-### Basic SDMX Schema Analysis
+## Quick Start
 
 ```julia
 using SDMX
+using DataFrames
 
-# Extract dataflow schema from SDMX API
+# Extract SDMX schema from Pacific Data Hub
 url = "https://stats-sdmx-disseminate.pacificdata.org/rest/dataflow/SPC/DF_BP50/latest?references=all"
 schema = extract_dataflow_schema(url)
 
-# Explore the schema
-println("Dataflow: $(schema.dataflow_info.name)")
-println("Required columns: $(get_required_columns(schema))")
-println("Optional columns: $(get_optional_columns(schema))")
+# View schema information
+println("Dataflow: " * schema.dataflow_info.name)
+println("Required columns: " * join(get_required_columns(schema), ", "))
 
-# Extract codelists
-codelists_df = extract_all_codelists(url)
-println("Available codelists: $(unique(codelists_df.codelist_id))")
+# Extract codelists (filtered to only used values)
+codelists = extract_all_codelists(url, true)
+println("Found " * string(nrow(codelists)) * " codes across " * 
+        string(length(unique(codelists.codelist_id))) * " codelists")
 
-# Filter codelists to only codes that appear in published data
-filtered_codelists = extract_all_codelists(url, true)  # true = filter by availability
-println("Filtered to $(nrow(filtered_codelists)) codes that are actually used")
-```
-
-### Data Availability Analysis
-
-```julia
-# Extract actual data availability constraints
-availability_url = construct_availability_url(url)
-availability = extract_availability(availability_url)
-
-# Show availability summary
-print_availability_summary(availability)
-
-# Get available values for specific dimensions
-countries_with_data = get_available_values(availability, "GEO_PICT")
-indicators_with_data = get_available_values(availability, "INDICATOR")
-println("Countries with data: $(join(countries_with_data, ", "))")
-println("Indicators with data: $(join(indicators_with_data, ", "))")
-
-# Check time coverage
-time_coverage = get_time_coverage(availability)
-println("Data period: $(time_coverage.start_date) to $(time_coverage.end_date)")
-```
-
-### Source Data Analysis
-
-```julia
-# Load and profile your source data
-source_data = read_source_data("my_data.csv")
+# Profile your source data
+source_data = CSV.read("my_data.csv", DataFrame)
 profile = profile_source_data(source_data, "my_data.csv")
-
-# View data quality assessment
 print_source_profile(profile)
-
-# Get intelligent mapping suggestions
-mappings = suggest_column_mappings(profile, schema)
-println("Suggested mappings:")
-for (target_col, source_cols) in mappings
-    println("  $target_col ← $(join(source_cols, ", "))")
-end
-```
-
-## 🔧 Core Functions Reference
-
-### SDMX Schema Functions
-
-| Function | Description | Example |
-|----------|-------------|---------|
-| `extract_dataflow_schema(url)` | Extract complete dataflow schema | `schema = extract_dataflow_schema(url)` |
-| `extract_all_codelists(url)` | Get all codelists as DataFrame | `codelists = extract_all_codelists(url)` |
-| `extract_all_codelists(url, true)` | Get filtered codelists (only used codes) | `filtered = extract_all_codelists(url, true)` |
-| `extract_concepts(url)` | Extract concept definitions | `concepts = extract_concepts(url)` |
-| `get_required_columns(schema)` | List required SDMX columns | `required = get_required_columns(schema)` |
-| `get_optional_columns(schema)` | List optional SDMX columns | `optional = get_optional_columns(schema)` |
-| `get_codelist_columns(schema)` | Get columns with codelists | `codelists = get_codelist_columns(schema)` |
-
-### SDMX Availability Functions
-
-| Function | Description | Example |
-|----------|-------------|---------|
-| `extract_availability(url)` | Extract data availability constraints | `avail = extract_availability(url)` |
-| `construct_availability_url(dataflow_url)` | Build availability URL from dataflow URL | `url = construct_availability_url(dataflow_url)` |
-| `get_available_values(avail, dim)` | Get available values for dimension | `countries = get_available_values(avail, "GEO_PICT")` |
-| `get_time_coverage(avail)` | Get time period coverage | `time_info = get_time_coverage(avail)` |
-| `compare_schema_availability(schema, avail)` | Compare schema vs actual data | `comparison = compare_schema_availability(schema, avail)` |
-| `find_data_gaps(avail, expected)` | Find missing dimension values | `gaps = find_data_gaps(avail, expected_values)` |
-| `get_data_coverage_summary(avail)` | Summary DataFrame of coverage | `summary = get_data_coverage_summary(avail)` |
-| `print_availability_summary(avail)` | Print formatted availability summary | `print_availability_summary(avail)` |
-
-### Data Analysis Functions
-
-| Function | Description | Example |
-|----------|-------------|---------|
-| `read_source_data(filepath)` | Smart data loading (CSV/Excel) | `data = read_source_data("file.csv")` |
-| `profile_source_data(data, filepath)` | Comprehensive data profiling | `profile = profile_source_data(data, "file.csv")` |
-| `suggest_column_mappings(profile, schema)` | Basic mapping suggestions | `mappings = suggest_column_mappings(profile, schema)` |
-| `print_source_profile(profile)` | Print formatted profile summary | `print_source_profile(profile)` |
-
-### Advanced Mapping Functions
-
-| Function | Description | Example |
-|----------|-------------|---------|
-| `create_inference_engine(options...)` | Create intelligent mapper | `engine = create_inference_engine()` |
-| `infer_advanced_mappings(engine, profile, schema)` | AI-powered mapping | `mappings = infer_advanced_mappings(engine, profile, schema)` |
-| `fuzzy_match_score(str1, str2)` | Calculate string similarity | `score = fuzzy_match_score("country", "GEO_PICT")` |
-| `analyze_value_patterns(values, codelist)` | Pattern matching analysis | `patterns = analyze_value_patterns(values, codelist)` |
-| `validate_mapping_quality(mappings)` | Assess mapping quality | `quality = validate_mapping_quality(mappings)` |
-
-### LLM Integration Functions
-
-| Function | Description | Example |
-|----------|-------------|---------|
-| `setup_llm_config(provider; options...)` | Configure LLM provider | `config = setup_llm_config(:ollama; model="llama3")` |
-| `analyze_excel_structure(filepath)` | Analyze Excel workbook structure | `analysis = analyze_excel_structure("file.xlsx")` |
-| `generate_transformation_script(args...)` | Generate transformation code | `script = generate_transformation_script(...)` |
-| `query_llm(config, prompt)` | Direct LLM query | `response = query_llm(config, "Analyze this data...")` |
-
-### Pipeline Operations
-
-| Function | Description | Example |
-|----------|-------------|---------|
-| `validate_with(validator)` | Create validation pipeline step | `data \|> validate_with(validator)` |
-| `profile_with(options)` | Create profiling pipeline step | `data \|> profile_with(detailed=true)` |
-| `map_with(mappings)` | Create mapping pipeline step | `data \|> map_with(mappings)` |
-| `generate_with(generator)` | Create generation pipeline step | `data \|> generate_with(script_gen)` |
-| `chain(steps...)` | Chain multiple pipeline steps | `pipeline = chain(step1, step2, step3)` |
-
-## 🎛️ Configuration Examples
-
-### LLM Providers
-
-```julia
-# Local Ollama
-config = setup_llm_config(:ollama; 
-    model="llama3", 
-    base_url="http://localhost:11434")
-
-# OpenAI
-config = setup_llm_config(:openai; 
-    model="gpt-4", 
-    api_key="your-key")
-
-# Anthropic Claude  
-config = setup_llm_config(:anthropic; 
-    model="claude-3-sonnet", 
-    api_key="your-key")
-```
-
-### Advanced Mapping Engine
-
-```julia
-# Create inference engine with custom settings
-engine = create_inference_engine(
-    fuzzy_threshold=0.7,
-    min_confidence=0.3,
-    enable_semantic_matching=true,
-    learn_from_feedback=true
-)
-
-# Perform advanced mapping
-result = infer_advanced_mappings(engine, profile, schema)
-println("Mapping quality score: $(result.quality_score)")
-```
-
-## 📊 Real-World Example
-
-### Pacific Data Hub Integration
-
-```julia
-# SPC Pacific Data Hub - Balance of Payments
-spc_url = "https://stats-sdmx-disseminate.pacificdata.org/rest/dataflow/SPC/DF_BP50/latest?references=all"
-
-# Extract schema and analyze your data
-schema = extract_dataflow_schema(spc_url)
-codelists = extract_all_codelists(spc_url, true)  # Only codes with actual data
-
-# Load and profile source data
-source_data = read_source_data("my_pacific_data.csv")
-profile = profile_source_data(source_data, "my_pacific_data.csv")
 
 # Get mapping suggestions
 mappings = suggest_column_mappings(profile, schema)
-
-# Advanced mapping with AI assistance
-engine = create_inference_engine()
-advanced_mappings = infer_advanced_mappings(engine, profile, schema)
-
-println("Found $(length(advanced_mappings.mappings)) potential mappings")
-println("Mapping confidence: $(round(advanced_mappings.quality_score, digits=2))")
+for (target, sources) in mappings
+    println(target * " <- " * join(sources, ", "))
+end
 ```
 
-## 🏗️ Data Pipeline
+## Core Modules
 
+### SDMXDataflows
+Extract and analyze dataflow schemas:
 ```julia
-# Create a data processing pipeline
-pipeline = chain(
-    profile_with(detailed=true),
-    map_with(schema_mappings),
-    validate_with(sdmx_validator),
-    generate_with(script_generator)
+schema = extract_dataflow_schema(url)
+required_cols = get_required_columns(schema)
+optional_cols = get_optional_columns(schema)
+codelist_cols = get_codelist_columns(schema)
+```
+
+### SDMXCodelists
+Manage dimension codelists:
+```julia
+# Get all codelists
+all_codes = extract_all_codelists(url)
+
+# Get only codes that appear in actual data
+used_codes = extract_all_codelists(url, true)
+
+# Extract specific codelist
+geo_codes = extract_codelist_from_url(url, "CL_GEO_PICT")
+```
+
+### SDMXAvailability
+Analyze actual data availability:
+```julia
+# Get data availability constraints
+avail_url = construct_availability_url(dataflow_url)
+availability = extract_availability(avail_url)
+
+# Check what data exists
+countries = get_available_values(availability, "GEO_PICT")
+time_range = get_time_coverage(availability)
+print_availability_summary(availability)
+
+# Find data gaps
+gaps = find_data_gaps(availability, expected_values)
+```
+
+### SDMXSourceData
+Profile and analyze source data:
+```julia
+# Smart data loading (CSV/Excel)
+data = read_source_data("file.xlsx")
+
+# Comprehensive profiling
+profile = profile_source_data(data, "file.xlsx")
+print_source_profile(profile)
+
+# Column analysis
+temporal_cols = get_temporal_columns(profile)
+categorical_cols = get_categorical_columns(profile)
+numeric_cols = get_numeric_columns(profile)
+```
+
+### SDMXMappingInference
+Advanced mapping with fuzzy matching:
+```julia
+# Create inference engine
+engine = create_inference_engine(
+    fuzzy_threshold=0.7,
+    min_confidence=0.3
 )
 
-# Process data through pipeline
-result = my_data |> pipeline
+# Infer mappings
+result = infer_advanced_mappings(engine, profile, schema, source_data)
+println("Mapping quality: " * string(result.quality_score))
+
+# Analyze specific mappings
+score = fuzzy_match_score("country", "GEO_PICT")
+patterns = analyze_value_patterns(values, codelist)
 ```
 
-## 🤝 Contributing
+### SDMXValidation
+Validate SDMX compliance:
+```julia
+# Validate data structure
+validation = validate_dataframe(df, schema)
+if !validation.is_valid
+    println("Validation errors: " * join(validation.errors, "\n"))
+end
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+# Check specific validations
+is_valid_time_format("2024-01")  # true
+is_valid_observation_value("123.45")  # true
+```
 
-## 📄 License
+### SDMXPipelineOps
+Composable pipeline operations:
+```julia
+using SDMX: @sdmx_pipeline
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+# Define transformation pipeline
+@sdmx_pipeline function transform_data(data)
+    data |>
+    profile_with() |>
+    validate_with(schema) |>
+    map_with(mappings) |>
+    output_to("transformed.csv")
+end
 
----
+# Check if data conforms to schema
+if data ⊆ schema
+    println("Data structure matches SDMX schema")
+end
+```
 
-**Transform your data to SDMX format with SDMX.jl!** 🚀
+## API Reference
+
+### Schema Functions
+- `extract_dataflow_schema(url)` - Extract complete dataflow schema
+- `get_required_columns(schema)` - Get mandatory SDMX columns
+- `get_optional_columns(schema)` - Get optional SDMX columns
+- `get_time_dimension(schema)` - Get time dimension information
+
+### Codelist Functions
+- `extract_all_codelists(url, filter_by_availability)` - Extract all codelists
+- `extract_codelist_from_url(url, codelist_id)` - Extract specific codelist
+- `get_codelist_for_dimension(schema, dimension)` - Get codelist for dimension
+
+### Data Analysis Functions
+- `profile_source_data(data, filepath)` - Profile data structure
+- `suggest_column_mappings(profile, schema)` - Basic mapping suggestions
+- `infer_column_mappings(data, schema)` - Direct data-to-schema mapping
+
+### Validation Functions
+- `validate_dataframe(df, schema)` - Validate against SDMX schema
+- `is_valid_time_format(str)` - Check time format validity
+- `is_valid_observation_value(str)` - Check observation value
+
+## Working with Pacific Data Hub
+
+```julia
+# Example: Balance of Payments data
+base_url = "https://stats-sdmx-disseminate.pacificdata.org/rest/"
+dataflow = "dataflow/SPC/DF_BP50/latest?references=all"
+
+# Full workflow
+schema = extract_dataflow_schema(base_url * dataflow)
+codelists = extract_all_codelists(base_url * dataflow, true)
+availability = extract_availability(construct_availability_url(base_url * dataflow))
+
+# Analyze coverage
+summary = get_data_coverage_summary(availability)
+print_availability_summary(availability)
+
+# Profile your data
+my_data = CSV.read("pacific_trade_data.csv", DataFrame)
+profile = profile_source_data(my_data, "pacific_trade_data.csv")
+
+# Map and validate
+mappings = suggest_column_mappings(profile, schema)
+validation = validate_dataframe(my_data, schema)
+```
+
+## Testing
+
+Run the test suite:
+```julia
+using Pkg
+Pkg.test("SDMX")
+```
+
+All 108 tests should pass, covering:
+- Dataflow schema extraction
+- Codelist management
+- Data availability analysis
+- Source data profiling
+- Mapping inference
+- Validation logic
+- Pipeline operations
+
+## Contributing
+
+Contributions welcome! Please ensure:
+1. All tests pass
+2. New features include tests
+3. Code follows Julia style conventions
+4. Documentation is updated
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## See Also
+
+- [SDMXLLM.jl](../SDMXLLM.jl) - LLM-powered extension for advanced transformations
+- [SDMX.org](https://sdmx.org) - Official SDMX documentation
+- [Pacific Data Hub](https://pacificdata.org) - Pacific region statistics
