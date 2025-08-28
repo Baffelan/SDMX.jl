@@ -33,19 +33,19 @@ identification, and data type inference optimized for SDMX workflows.
 # Examples
 ```julia
 # Requires: using XLSX
-using DataFrames, SDMX, XLSX
-
-# Read from default sheet
-df = read_source_data_excel("data.xlsx")
-
-# Read from specific sheet by name
-df = read_source_data_excel("data.xlsx", sheet="Population Data")
-
-# Read with custom header row
-df = read_source_data_excel("data.xlsx", sheet=2, header_row=3)
-
-# Profile the data after reading
-profile = profile_source_data(df, "data.xlsx")
+# using DataFrames, SDMX, XLSX
+# 
+# # Read from default sheet
+# df = read_source_data_excel("data.xlsx")
+# 
+# # Read from specific sheet by name
+# df = read_source_data_excel("data.xlsx", sheet="Population Data")
+# 
+# # Read with custom header row
+# df = read_source_data_excel("data.xlsx", sheet=2, header_row=3)
+# 
+# # Profile the data after reading
+# profile = profile_source_data(df, "data.xlsx")
 ```
 
 # Throws
@@ -100,19 +100,19 @@ identify potential issues, and suggest the optimal approach for converting to SD
 # Examples
 ```julia
 # Requires: using XLSX
-analysis = profile_excel_file("complex_data.xlsx")
-
-println("Recommended sheet: $(analysis.recommended_sheet)")
-println("Complexity: $(analysis.complexity_score)/10")
-println("Recommendations:")
-for rec in analysis.recommendations
-    println("  - $rec")
-end
-
-# Use analysis for data reading
-df = read_source_data_excel(file_path, 
-                           sheet=analysis.recommended_sheet,
-                           header_row=analysis.header_rows[1])
+# analysis = profile_excel_file("complex_data.xlsx")
+# 
+# println("Recommended sheet: \$(analysis.recommended_sheet)")
+# println("Complexity: \$(analysis.complexity_score)/10")
+# println("Recommendations:")
+# for rec in analysis.recommendations
+#     println("  - \$rec")
+# end
+# 
+# # Use analysis for data reading
+# df = read_source_data_excel(file_path, 
+#                            sheet=analysis.recommended_sheet,
+#                            header_row=analysis.header_rows[1])
 ```
 
 # See also
@@ -215,9 +215,9 @@ and other structural elements that affect SDMX transformation strategies.
 # Examples
 ```julia
 # Requires: using XLSX
-structure = detect_excel_structure("pivot_data.xlsx", "Summary")
-println("Table type: $(structure.table_type)")
-println("Data range: $(structure.data_range)")
+# structure = detect_excel_structure("pivot_data.xlsx", "Summary")
+# println("Table type: \$(structure.table_type)")
+# println("Data range: \$(structure.data_range)")
 ```
 
 # See also
