@@ -125,7 +125,7 @@ struct SourceDataProfile
 end
 
 """
-    read_source_data(file_path::String; sheet=1, header_row=1) -> DataFrame
+    read_source_data(file_path::String; sheet = 1, header_row = 1) -> DataFrame
 
 Reads data from CSV files, with optional Excel support when XLSX.jl is available.
 
@@ -135,8 +135,8 @@ users need to have XLSX.jl installed and loaded.
 
 # Arguments
 - `file_path::String`: Path to the data file
-- `sheet=1`: Excel sheet number or name (ignored for CSV, requires XLSX.jl for Excel)
-- `header_row=1`: Row number containing column headers
+- `sheet = 1`: Excel sheet number or name (ignored for CSV, requires XLSX.jl for Excel)
+- `header_row = 1`: Row number containing column headers
 
 # Returns
 - `DataFrame`: The loaded data
@@ -148,7 +148,7 @@ df = read_source_data("data.csv")
 
 # Excel files (requires: using XLSX)
 using XLSX  # This loads the Excel extension
-df = read_source_data("data.xlsx", sheet="Sheet1", header_row=2)
+df = read_source_data("data.xlsx"; sheet = "Sheet1", header_row = 2)
 ```
 
 # Throws
@@ -157,7 +157,7 @@ df = read_source_data("data.xlsx", sheet="Sheet1", header_row=2)
 # See also
 [`read_source_data_excel`](@ref), [`profile_source_data`](@ref)
 """
-function read_source_data(file_path::String; sheet=1, header_row=1)
+function read_source_data(file_path::String; sheet = 1, header_row = 1)
     if !isfile(file_path)
         error("File not found: $file_path")
     end
@@ -169,7 +169,7 @@ function read_source_data(file_path::String; sheet=1, header_row=1)
     elseif file_ext in [".xlsx", ".xls"]
         # Check if Excel extension is available
         if isdefined(SDMX, :read_source_data_excel)
-            return SDMX.read_source_data_excel(file_path; sheet=sheet, header_row=header_row)
+            return SDMX.read_source_data_excel(file_path; sheet = sheet, header_row = header_row)
         else
             error("Excel file support requires XLSX.jl. Please run: using XLSX")
         end
@@ -177,6 +177,12 @@ function read_source_data(file_path::String; sheet=1, header_row=1)
         error("Unsupported file format: $file_ext. Supported formats: .csv, .xlsx/.xls (with XLSX.jl)")
     end
 end
+
+# Stub functions for Excel extension
+# These are extended by SDMXExcelExt when XLSX.jl is loaded
+function read_source_data_excel end
+function profile_excel_file end
+function detect_excel_structure end
 
 """
     detect_column_type_and_patterns(column_data::Vector) -> NamedTuple
@@ -629,7 +635,7 @@ function suggest_column_mappings(source_profile::SourceDataProfile, target_schem
         end
         
         # Sort by score and keep top candidates
-        sort!(candidates, by=x->x[2], rev=true)
+        sort!(candidates, by = x -> x[2], rev = true)
         if !isempty(candidates)
             mappings[dim_col] = [c[1] for c in candidates[1:min(3, length(candidates))]]
         end
@@ -658,7 +664,7 @@ function suggest_column_mappings(source_profile::SourceDataProfile, target_schem
         end
         
         # Sort by score
-        sort!(candidates, by=x->x[2], rev=true)
+        sort!(candidates, by = x -> x[2], rev = true)
         if !isempty(candidates)
             mappings[measure_col] = [c[1] for c in candidates[1:min(3, length(candidates))]]
         end
