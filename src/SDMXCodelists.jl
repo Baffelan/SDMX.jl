@@ -49,7 +49,8 @@ end
 """
     process_code_node(code_node::EzXML.Node) -> Vector{NamedTuple}
 
-Extracts comprehensive information from a single SDMX code node including multilingual content.
+Extracts comprehensive information from a single SDMX code node including multilingual
+content.
 
 This function processes an individual code element from an SDMX codelist, extracting
 the code identifier, names in multiple languages, annotations, and hierarchical 
@@ -92,8 +93,10 @@ println("English name: ", english_record.name)
 function process_code_node(code_node::EzXML.Node)
     node_rows = []
     code_id = code_node["id"]
-    names = Dict(n["xml:lang"] => nodecontent(n) for n in findall(".//common:Name", code_node))
-    annotations = Dict(a["xml:lang"] => nodecontent(a) for a in findall(".//common:AnnotationText", code_node))
+    names = Dict(n["xml:lang"] => nodecontent(n) 
+                 for n in findall(".//common:Name", code_node))
+    annotations = Dict(a["xml:lang"] => nodecontent(a) 
+                      for a in findall(".//common:AnnotationText", code_node))
     parent_id = get_parent_id(code_node)
     all_langs = union(keys(names), keys(annotations))
     if isempty(all_langs)
@@ -115,7 +118,8 @@ end
 """
     extract_codes_from_codelist_node(cl_node::EzXML.Node) -> Vector{NamedTuple}
 
-Extracts all code data from a single `<structure:Codelist>` node. It finds the codelist's ID and merges it with the data extracted from each child Code node.
+Extracts all code data from a single `<structure:Codelist>` node. It finds the codelist's
+ID and merges it with the data extracted from each child Code node.
 
 # Arguments
 - `cl_node::EzXML.Node`: The codelist node to process.
@@ -135,7 +139,8 @@ end
 """
     extract_all_codelists(doc::EzXML.Document) -> DataFrame
 
-The primary extraction function for a SDMX-like dataflow document. It operates on an XML object (namely, an already-parsed `EzXML.Document` object).
+The primary extraction function for a SDMX-like dataflow document. It operates on an XML
+object (namely, an already-parsed `EzXML.Document` object).
 
 This function traverses the document to find all `<structure:Codelist>` elements. For each codelist, it extracts all child `<structure:Code>` elements, capturing their IDs, names, annotations, and the ID of the parent codelist to ensure uniqueness. The results from all codelists are aggregated into a single, tidy DataFrame.
 
@@ -271,25 +276,47 @@ Filters a codelists DataFrame to include only codes that actually appear in publ
 - `DataFrame`: Filtered codelists containing only codes with actual published data
 """
 function filter_codelists_by_availability(codelists_df::DataFrame, dataflow_url::String, availability_url::String="")
-    # Extract dataflow ID from the dataflow URL to construct availability URL
-    if isempty(availability_url)
-        availability_url = construct_availability_url(dataflow_url)
-    end
-    
-    # Add trailing slash if missing (SDMX APIs often require this)
-    if !isempty(availability_url) && !endswith(availability_url, "/")
-        availability_url = availability_url * "/"
-    end
-    
-    if isempty(availability_url)
-        @warn "Could not construct availability URL from dataflow URL: $dataflow_url"
-        return codelists_df
-    end
-    
     try
-        println("Attempting to fetch availability from: $availability_url")
-        # Get availability constraints and dataflow schema
-        availability = extract_availability(availability_url)
+        # First, try to get availability constraint based on what was provided
+        availability = nothing
+        
+        if isempty(availability_url)
+            # No specific availability URL provided - try to get from dataflow document itself
+            println("Attempting to extract availability constraint from dataflow document...")
+            xml_string = fetch_sdmx_xml(dataflow_url)
+            doc = parsexml(xml_string)
+            availability = extract_availability_from_dataflow(doc)
+            
+            if availability === nothing
+                # No embedded constraint, try constructing availability URL
+                availability_url = construct_availability_url(dataflow_url)
+                
+                # Add trailing slash if missing (SDMX APIs often require this)
+                if !isempty(availability_url) && !endswith(availability_url, "/")
+                    availability_url = availability_url * "/"
+                end
+                
+                if isempty(availability_url)
+                    @warn "Could not find embedded availability constraint or construct availability URL from dataflow URL: $dataflow_url"
+                    return codelists_df
+                end
+                
+                println("No embedded constraint found, attempting to fetch from: $availability_url")
+                availability = extract_availability(availability_url)
+            else
+                println("Using embedded availability constraint from dataflow document")
+            end
+        else
+            # Specific availability URL provided - use it
+            # Add trailing slash if missing (SDMX APIs often require this)
+            if !endswith(availability_url, "/")
+                availability_url = availability_url * "/"
+            end
+            println("Attempting to fetch availability from provided URL: $availability_url")
+            availability = extract_availability(availability_url)
+        end
+        
+        # Get dataflow schema
         schema = extract_dataflow_schema(dataflow_url)
         
         # Create dimension-specific mapping of available values

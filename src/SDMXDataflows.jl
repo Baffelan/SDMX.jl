@@ -15,17 +15,22 @@ export extract_dataflow_schema
 """
     DataflowSchema
 
-Complete schema information for an SDMX dataflow including structure, dimensions, and metadata.
+Complete schema information for an SDMX dataflow including structure, dimensions, and
+metadata.
 
 This struct contains all essential schema information needed to validate, transform,
 and work with SDMX-CSV data. It provides comprehensive metadata about the dataflow
 structure, dimension ordering, attribute requirements, and measure definitions.
 
 # Fields
-- `dataflow_info::NamedTuple`: Basic dataflow metadata including id, agency, version, name, and description
-- `dimensions::DataFrame`: All dimensions with position ordering, concept references, and codelist information
-- `attributes::DataFrame`: All attributes with assignment status (required/conditional), concept and codelist info  
-- `measures::DataFrame`: Primary measure definitions with concept references and data type specifications
+- `dataflow_info::NamedTuple`: Basic dataflow metadata including id, agency, version,
+  name, and description
+- `dimensions::DataFrame`: All dimensions with position ordering, concept references,
+  and codelist information
+- `attributes::DataFrame`: All attributes with assignment status (required/conditional),
+  concept and codelist info  
+- `measures::DataFrame`: Primary measure definitions with concept references and data
+  type specifications
 - `time_dimension::Union{NamedTuple, Nothing}`: Special time dimension information if present in the dataflow
 
 # Examples

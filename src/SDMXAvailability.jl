@@ -116,6 +116,46 @@ function extract_availability(input::String)
 end
 
 """
+    extract_availability_from_dataflow(doc::EzXML.Document) -> Union{AvailabilityConstraint, Nothing}
+
+Extracts the Actual type ContentConstraint from a dataflow document's Constraints section.
+This is used when fetching codelists without a specific filtering key.
+
+Returns nothing if no Actual ContentConstraint is found (which is okay - not all dataflows have it).
+"""
+function extract_availability_from_dataflow(doc::EzXML.Document)
+    doc_root = root(doc)
+    
+    # Look for ContentConstraint with type="Actual" in the Constraints section
+    # Try different namespace patterns
+    constraint_node = findfirst("//structure:ContentConstraint[@type='Actual']", doc_root)
+    if constraint_node === nothing
+        constraint_node = findfirst("//str:ContentConstraint[@type='Actual']", doc_root)
+    end
+    if constraint_node === nothing  
+        constraint_node = findfirst("//ContentConstraint[@type='Actual']", doc_root)
+    end
+    if constraint_node === nothing
+        # Try without namespace prefix but check for type attribute
+        constraint_nodes = findall("//*[local-name()='ContentConstraint']", doc_root)
+        for node in constraint_nodes
+            if haskey(node, "type") && node["type"] == "Actual"
+                constraint_node = node
+                break
+            end
+        end
+    end
+    
+    # If no Actual constraint found, return nothing (not an error)
+    if constraint_node === nothing
+        return nothing
+    end
+    
+    # Extract using the existing logic
+    return extract_availability_from_node(constraint_node)
+end
+
+"""
     extract_availability(doc::EzXML.Document) -> AvailabilityConstraint
 
 Extracts availability constraint information from a parsed XML document.
@@ -147,6 +187,17 @@ function extract_availability(doc::EzXML.Document)
         throw(ArgumentError("No ContentConstraint found in the document. Available elements: $(join(sample_elements, separator))"))
     end
     
+    # Use the refactored extraction logic
+    return extract_availability_from_node(constraint_node)
+end
+
+"""
+    extract_availability_from_node(constraint_node::EzXML.Node) -> AvailabilityConstraint
+
+Extracts availability constraint information from a ContentConstraint XML node.
+This is the core extraction logic used by both extract_availability and extract_availability_from_dataflow.
+"""
+function extract_availability_from_node(constraint_node::EzXML.Node)
     # Extract basic constraint info
     constraint_id = haskey(constraint_node, "id") ? constraint_node["id"] : "unknown"
     agency_id = haskey(constraint_node, "agencyID") ? constraint_node["agencyID"] : "unknown" 
