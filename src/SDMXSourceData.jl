@@ -178,6 +178,12 @@ function read_source_data(file_path::String; sheet = 1, header_row = 1)
     end
 end
 
+# Stub functions for Excel extension
+# These are extended by SDMXExcelExt when XLSX.jl is loaded
+function read_source_data_excel end
+function profile_excel_file end
+function detect_excel_structure end
+
 """
     detect_column_type_and_patterns(column_data::Vector) -> NamedTuple
 

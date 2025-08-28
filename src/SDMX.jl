@@ -52,6 +52,8 @@ export compare_schema_availability, get_data_coverage_summary, find_data_gaps, p
 # === SOURCE DATA PROCESSING & PROFILING ===
 # Functions for reading, profiling, and analyzing source data files
 export read_source_data, profile_source_data, suggest_column_mappings, print_source_profile
+# Excel extension stub functions (extended when XLSX.jl is loaded)
+export read_source_data_excel, profile_excel_file, detect_excel_structure
 
 # === DATA VALIDATION SYSTEM ===
 # Comprehensive validation framework for SDMX data quality and compliance
