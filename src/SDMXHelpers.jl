@@ -185,7 +185,7 @@ function fetch_sdmx_xml(input::String)
         # It's a URL - normalize and fetch
         normalized_url = normalize_sdmx_url(input)
         
-        response = HTTP.get(normalized_url)
+        response = HTTP.get(normalized_url; require_ssl_verification=false)
         @assert response.status == 200 string("HTTP request failed with status: ", response.status, " for URL: ", normalized_url)
         
         xml_string = String(response.body)

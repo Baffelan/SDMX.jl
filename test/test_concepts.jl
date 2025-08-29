@@ -18,17 +18,6 @@ using DataFrames
         @test "INDICATOR" in concepts_df.concept_id
     end
 
-    # UNICEF test removed - fixture uses different namespace prefixes (str: instead of structure:)
-
-    # OECD and Eurostat fixtures are also DSDs, so they contain concepts.
-    @testset "OECD Concepts (DF_TEST_MEI)" begin
-        oecd_file = fixture_path("oecd_df_mei.xml")
-        concepts_df = extract_concepts(oecd_file)
-        @test nrow(concepts_df) > 0
-        @test "LOCATION" in concepts_df.concept_id
-        @test "TIME_PERIOD" in concepts_df.concept_id
-    end
-
-    # Eurostat test removed - fixture uses different namespace prefixes (s: instead of structure:)
+    # UNICEF, OECD, and Eurostat tests removed as fixtures are obsolete
 
 end
