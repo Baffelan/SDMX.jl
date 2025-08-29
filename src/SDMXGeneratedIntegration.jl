@@ -203,7 +203,8 @@ end
 Create sample XML content for benchmarking generated function performance.
 """
 function create_benchmark_xml()
-    return \"\"\"
+    return(
+    """
     <?xml version="1.0" encoding="UTF-8"?>
     <structure:DataStructure xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure"
                             xmlns:common="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common">
@@ -237,4 +238,5 @@ function create_benchmark_xml()
         </structure:PrimaryMeasure>
     </structure:DataStructure>
     """
+    )
 end
