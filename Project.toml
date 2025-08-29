@@ -17,4 +17,5 @@ XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 XML = "72c71f33-b9b6-44de-8c94-c961784809e2"
 
 [compat]
+EzXML = "1.2.2"
 Test = "1.11.0"
