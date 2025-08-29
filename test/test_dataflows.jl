@@ -1,15 +1,17 @@
 using Test
 using SDMX
 using DataFrames
-
+using EzXML
 # Note: fixture_path is defined in the main runtests.jl
 # This makes it available to all included test files.
 
 @testset "Dataflow Schema Extraction" begin
 
     @testset "SPC Dataflow (DF_BP50)" begin
-        spc_file = fixture_path("spc_df_bp50.xml")
-        @test isfile(spc_file)
+        spc_file_path = fixture_path("spc_df_bp50.xml")
+        @test isfile(spc_file_path)
+
+        spc_file = readxml(spc_file_path)
 
         schema = extract_dataflow_schema(spc_file)
 
@@ -54,8 +56,10 @@ using DataFrames
     end
 
     @testset "UNICEF Dataflow (CME)" begin
-        unicef_file = fixture_path("unicef_df_cme.xml")
-        @test isfile(unicef_file)
+        unicef_file_path = fixture_path("unicef_df_cme.xml")
+        @test isfile(unicef_file_path)
+
+        unicef_file = readxml(unicef_file_path)
 
         schema = extract_dataflow_schema(unicef_file)
 
@@ -70,8 +74,10 @@ using DataFrames
     end
 
     @testset "OECD Dataflow (DF_TEST_MEI)" begin
-        oecd_file = fixture_path("oecd_df_mei.xml")
-        @test isfile(oecd_file)
+        oecd_file_path = fixture_path("oecd_df_mei.xml")
+        @test isfile(oecd_file_path)
+
+        oecd_file = readxml(oecd_file_path)
 
         schema = extract_dataflow_schema(oecd_file)
 
@@ -84,8 +90,10 @@ using DataFrames
     end
 
     @testset "Eurostat Dataflow (nama_10_gdp)" begin
-        eurostat_file = fixture_path("eurostat_df_nama10gdp.xml")
-        @test isfile(eurostat_file)
+        eurostat_file_path = fixture_path("eurostat_df_nama10gdp.xml")
+        @test isfile(eurostat_file_path)
+
+        eurostat_file = readxml(eurostat_file_path)
 
         schema = extract_dataflow_schema(eurostat_file)
 
