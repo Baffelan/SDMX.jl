@@ -5,7 +5,8 @@ using DataFrames
 @testset "Concept Extraction" begin
 
     @testset "SPC Concepts (DF_BP50)" begin
-        spc_file = fixture_path("spc_df_bp50.xml")
+        spc_file_path = fixture_path("spc_df_bp50.xml")
+        spc_file = readxml(spc_file_path)
         concepts_df = extract_concepts(spc_file)
 
         @test nrow(concepts_df) > 0
@@ -19,7 +20,8 @@ using DataFrames
     end
 
     @testset "UNICEF Concepts (CME)" begin
-        unicef_file = fixture_path("unicef_df_cme.xml")
+        unicef_file_path = fixture_path("unicef_df_cme.xml")
+        unicef_file = readxml(unicef_file_path)
         concepts_df = extract_concepts(unicef_file)
         @test nrow(concepts_df) > 0
         @test "REF_AREA" in concepts_df.concept_id
@@ -29,7 +31,8 @@ using DataFrames
 
     # OECD and Eurostat fixtures are also DSDs, so they contain concepts.
     @testset "OECD Concepts (DF_TEST_MEI)" begin
-        oecd_file = fixture_path("oecd_df_mei.xml")
+        oecd_file_path = fixture_path("oecd_df_mei.xml")
+        oecd_file = readxml(oecd_file_path)
         concepts_df = extract_concepts(oecd_file)
         @test nrow(concepts_df) > 0
         @test "LOCATION" in concepts_df.concept_id
@@ -37,7 +40,8 @@ using DataFrames
     end
 
     @testset "Eurostat Concepts (nama_10_gdp)" begin
-        eurostat_file = fixture_path("eurostat_df_nama10gdp.xml")
+        eurostat_file_path = fixture_path("eurostat_df_nama10gdp.xml")
+        eurostat_file = readxml(eurostat_file_path)
         concepts_df = extract_concepts(eurostat_file)
         @test nrow(concepts_df) > 0
         @test "geo" in concepts_df.concept_id
