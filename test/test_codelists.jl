@@ -5,7 +5,9 @@ using DataFrames
 @testset "Codelist Extraction" begin
 
     @testset "SPC Codelists (DF_BP50)" begin
-        spc_file = fixture_path("spc_df_bp50.xml")
+        spc_file_path = fixture_path("spc_df_bp50.xml")
+        spc_file = readxml(spc_file_path)
+        
         df = extract_all_codelists(spc_file)
 
         @test nrow(df) > 0
@@ -22,7 +24,8 @@ using DataFrames
     # UNICEF test removed - fixture uses different namespace prefixes (str: instead of structure:)
 
     @testset "OECD Codelists (DF_TEST_MEI)" begin
-        oecd_file = fixture_path("oecd_df_mei.xml")
+        oecd_file_path = fixture_path("oecd_df_mei.xml")
+        oecd_file = readxml(oecd_file_path)
         df = extract_all_codelists(oecd_file)
         @test nrow(df) > 0
         @test "CL_MEI_TEST_SUBJECT" in df.codelist_id
