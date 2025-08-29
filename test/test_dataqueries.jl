@@ -5,7 +5,8 @@ using DataFrames
 @testset "Data Query Construction" begin
 
     # Load a schema for testing key construction
-    spc_schema_file = fixture_path("spc_df_bp50.xml")
+    spc_schema_file_path = fixture_path("spc_df_bp50.xml")
+    spc_schema_file = readxml(spc_schema_file_path)
     spc_schema = extract_dataflow_schema(spc_schema_file)
 
     @testset "construct_sdmx_key" begin
