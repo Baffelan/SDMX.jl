@@ -1,15 +1,17 @@
 using Test
 using SDMX
 using DataFrames
-
+using EzXML
 # Note: fixture_path is defined in the main runtests.jl
 # This makes it available to all included test files.
 
 @testset "Dataflow Schema Extraction" begin
 
     @testset "SPC Dataflow (DF_BP50)" begin
-        spc_file = fixture_path("spc_df_bp50.xml")
-        @test isfile(spc_file)
+        spc_file_path = fixture_path("spc_df_bp50.xml")
+        @test isfile(spc_file_path)
+
+        spc_file = readxml(spc_file_path)
 
         schema = extract_dataflow_schema(spc_file)
 
@@ -56,8 +58,10 @@ using DataFrames
     # UNICEF test removed - fixture uses different namespace prefixes (str: instead of structure:)
 
     @testset "OECD Dataflow (DF_TEST_MEI)" begin
-        oecd_file = fixture_path("oecd_df_mei.xml")
-        @test isfile(oecd_file)
+        oecd_file_path = fixture_path("oecd_df_mei.xml")
+        @test isfile(oecd_file_path)
+
+        oecd_file = readxml(oecd_file_path)
 
         schema = extract_dataflow_schema(oecd_file)
 
