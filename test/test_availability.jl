@@ -6,7 +6,8 @@ using EzXML
 @testset "Availability Extraction" begin
 
     @testset "SPC Availability (Successful)" begin
-        spc_file = fixture_path("spc_ac_bp50.xml")
+        spc_file_path = fixture_path("spc_ac_bp50.xml")
+        spc_file = readxml(spc_file_path)
         availability = extract_availability(spc_file)
 
         @test availability isa AvailabilityConstraint
@@ -27,12 +28,19 @@ using EzXML
     end
 
     @testset "Error Handling on Invalid Fixtures" begin
-        # UNICEF test removed - fixture uses different namespace prefixes
+        # UNICEF fixture contains a 'No Results Found' error
+        unicef_error_file_path = fixture_path("unicef_ac_cme.xml")
+        unicef_error_file = readxml(unicef_error_file_path)
+        @test_throws ArgumentError extract_availability(unicef_error_file)
 
         # OECD fixture contains a 'Could not find requested structures' error
-        oecd_error_file = fixture_path("oecd_ac_mei.xml")
-        @test_throws EzXML.XMLError extract_availability(oecd_error_file)
+        oecd_error_file_path = fixture_path("oecd_ac_mei.xml")
+        oecd_error_file = readxml(oecd_error_file_path)
+        @test_throws ArgumentError extract_availability(oecd_error_file)
 
-        # Eurostat test removed - fixture uses different namespace prefixes
+        # Eurostat fixture contains a 'Method Not Allowed' error
+        eurostat_error_file_path = fixture_path("eurostat_ac_nama10gdp.xml")
+        eurostat_error_file = readxml(eurostat_error_file_path)
+        @test_throws ArgumentError extract_availability(eurostat_error_file)
     end
 end
