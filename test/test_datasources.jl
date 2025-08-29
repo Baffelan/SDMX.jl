@@ -19,7 +19,8 @@ using DataFrames
         # and improved to be more meaningful.
 
         # We need a schema to map against. Let's use the SPC one.
-        spc_schema_file = fixture_path("spc_df_bp50.xml")
+        spc_schema_file_path = fixture_path("spc_df_bp50.xml")
+        spc_schema_file = readxml(spc_schema_file_path)
         schema = extract_dataflow_schema(spc_schema_file)
 
         mapping_test_data = DataFrame(
