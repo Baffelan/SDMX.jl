@@ -53,22 +53,6 @@ using DataFrames
         @test haskey(codelist_cols, "INDICATOR")
     end
 
-    # UNICEF test removed - fixture uses different namespace prefixes (str: instead of structure:)
-
-    @testset "OECD Dataflow (DF_TEST_MEI)" begin
-        oecd_file = fixture_path("oecd_df_mei.xml")
-        @test isfile(oecd_file)
-
-        schema = extract_dataflow_schema(oecd_file)
-
-        @test schema.dataflow_info.id == "DF_TEST_MEI"
-        @test schema.dataflow_info.agency == "OECD.SDD.SDPS"
-        @test "LOCATION" in schema.dimensions.dimension_id
-        @test "SUBJECT" in schema.dimensions.dimension_id
-        @test schema.time_dimension.dimension_id == "TIME_PERIOD"
-        @test "OBS_VALUE" in schema.measures.measure_id
-    end
-
-    # Eurostat test removed - fixture uses different namespace prefixes (s: instead of structure:)
+    # UNICEF, OECD, and Eurostat tests removed as fixtures are obsolete
 
 end

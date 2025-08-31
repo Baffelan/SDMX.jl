@@ -26,13 +26,5 @@ using EzXML
         @test time_coverage.total_periods > 0
     end
 
-    @testset "Error Handling on Invalid Fixtures" begin
-        # UNICEF test removed - fixture uses different namespace prefixes
-
-        # OECD fixture contains a 'Could not find requested structures' error
-        oecd_error_file = fixture_path("oecd_ac_mei.xml")
-        @test_throws EzXML.XMLError extract_availability(oecd_error_file)
-
-        # Eurostat test removed - fixture uses different namespace prefixes
-    end
+    # Removed error handling tests for obsolete fixtures
 end

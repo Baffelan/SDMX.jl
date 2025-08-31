@@ -403,8 +403,11 @@ Returns nothing if no mapping can be determined.
 - "CL_FREQ" -> "FREQ"
 - "INDICATOR" -> "INDICATOR" (direct match)
 """
-function map_codelist_to_dimension(codelist_id::String)
-    if ismissing(codelist_id)
+function map_codelist_to_dimension(::Missing)
+    return nothing
+end
+function map_codelist_to_dimension(codelist_id::Union{String, Nothing})
+    if isnothing(codelist_id)
         return nothing
     end
     
