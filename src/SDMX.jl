@@ -9,6 +9,7 @@ using EzXML, DataFrames, HTTP, CSV, Statistics, Dates, JSON3, StatsBase
 
 include("SDMXElementTypes.jl")
 include("SDMXGeneratedParsing.jl")
+include("SDMXGeneratedIntegration.jl")
 include("SDMXCodelists.jl")
 include("SDMXConcepts.jl")
 include("SDMXDataflows.jl")
@@ -30,8 +31,8 @@ export ValidationResult, ValidationRule, ValidationSeverity, SDMXValidator
 # === GENERATED FUNCTION TYPES & PARSING ===
 # Type-specialized parsing system using @generated functions for compile-time optimization
 export SDMXElement, DimensionElement, AttributeElement, MeasureElement, ConceptElement, CodelistElement, AvailabilityElement, TimeElement
-export extract_sdmx_element, get_xpath_patterns
-# Generated function integration utilities removed for simplicity
+export extract_sdmx_element, get_xpath_patterns, extract_code_info, extract_generic_element
+export demonstrate_generated_parsing, migration_guide, create_benchmark_xml
 
 # === SDMX SCHEMA & METADATA EXTRACTION ===
 # Functions for extracting and analyzing SDMX schema structures and concepts
@@ -46,7 +47,8 @@ export construct_availability_url, map_codelist_to_dimension
 
 # === DATA AVAILABILITY ANALYSIS ===
 # Functions for analyzing data availability constraints and coverage
-export extract_availability, extract_availability_from_dataflow, get_available_values, get_time_coverage
+export extract_availability, extract_availability_from_dataflow, extract_availability_from_node, get_available_values, get_time_coverage
+export extract_time_availability, get_time_period_values, extract_dimension_values
 export compare_schema_availability, get_data_coverage_summary, find_data_gaps, print_availability_summary
 
 # === SOURCE DATA PROCESSING & PROFILING ===
@@ -62,7 +64,7 @@ export generate_validation_report, preview_validation_output
 
 # === DATA QUERY & RETRIEVAL ===
 # Functions for constructing queries and retrieving SDMX data from APIs
-export construct_data_url, fetch_sdmx_data, query_sdmx_data, construct_sdmx_key, summarize_data
+export construct_data_url, fetch_sdmx_data, query_sdmx_data, construct_sdmx_key, clean_sdmx_data, summarize_data
 
 # === PIPELINE OPERATIONS & WORKFLOW ===
 # Functional programming interface for chaining SDMX operations

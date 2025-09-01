@@ -11,7 +11,7 @@ using Base.Threads
 
 # =================== CUSTOM OPERATORS ===================
 
-import Base: ⊆
+import Base: ⊆, |>
 
 """
     ⊆(data::DataFrame, schema::DataflowSchema) -> Bool
