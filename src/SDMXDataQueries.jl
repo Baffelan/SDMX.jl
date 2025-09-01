@@ -135,7 +135,7 @@ function construct_data_url(base_url::String, agency_id::String, dataflow_id::St
                            dimension_at_observation::String="AllDimensions")
     
     # Build dataflow reference
-    dataflow_ref = "$agency_id,$dataflow_id,$version"
+    dataflow_ref = agency_id * "," * dataflow_id * "," * version
     
     # Use provided key or construct from filters and schema
     final_key = if !isempty(key)
@@ -149,14 +149,15 @@ function construct_data_url(base_url::String, agency_id::String, dataflow_id::St
         ""  # Empty key - get all data
     end
     
-    # Build URL
-    url = "$base_url/data/$dataflow_ref/$final_key"
+    # Build URL - handle trailing slash in base_url
+    base_url_clean = rstrip(base_url, '/')
+    url = base_url_clean * "/data/" * dataflow_ref * "/" * final_key
     
     # Add query parameters
     params = String[]
-    start_period !== nothing && push!(params, "startPeriod=$start_period")
-    end_period !== nothing && push!(params, "endPeriod=$end_period")
-    push!(params, "dimensionAtObservation=$dimension_at_observation")
+    start_period !== nothing && push!(params, "startPeriod=" * start_period)
+    end_period !== nothing && push!(params, "endPeriod=" * end_period)
+    push!(params, "dimensionAtObservation=" * dimension_at_observation)
     
     !isempty(params) && (url *= "?" * join(params, "&"))
     
@@ -352,7 +353,47 @@ function query_sdmx_data(base_url::String, agency_id::String, dataflow_id::Strin
                         start_period::Union{String,Nothing}=nothing,
                         end_period::Union{String,Nothing}=nothing)
     
-    url = construct_data_url(base_url, agency_id, dataflow_id, version,
+    # If dimension_filters are provided without a key, fetch the schema
+    schema = nothing
+    actual_version = version
+    
+    if !isempty(dimension_filters) && isempty(key)
+        # Construct dataflow structure URL (works with "latest")
+        base_url_clean = rstrip(base_url, '/')
+        dataflow_url = base_url_clean * "/dataflow/" * agency_id * "/" * dataflow_id * "/" * version
+        
+        try
+            # Fetch and parse the dataflow schema
+            schema = extract_dataflow_schema(dataflow_url)
+            # Extract the actual version from the schema if we used "latest"
+            if version == "latest" && schema !== nothing
+                actual_version = schema.dataflow_info.version
+            end
+        catch e
+            @warn "Could not fetch dataflow schema: " * string(e)
+            @warn "Falling back to simple key construction"
+        end
+    elseif version == "latest"
+        # Even without dimension_filters, if version is "latest" we should fetch the actual version
+        base_url_clean = rstrip(base_url, '/')
+        dataflow_url = base_url_clean * "/dataflow/" * agency_id * "/" * dataflow_id * "/" * version
+        
+        try
+            # Fetch and parse the dataflow schema just to get the version
+            temp_schema = extract_dataflow_schema(dataflow_url)
+            actual_version = temp_schema.dataflow_info.version
+            # If we also need the schema for key construction, use it
+            if !isempty(dimension_filters) && isempty(key)
+                schema = temp_schema
+            end
+        catch e
+            @warn "Could not fetch dataflow schema to resolve version: " * string(e)
+            # Keep version as "latest" and hope the API supports it
+        end
+    end
+    
+    url = construct_data_url(base_url, agency_id, dataflow_id, actual_version,
+                           schema=schema,
                            key=key,
                            dimension_filters=dimension_filters,
                            start_period=start_period, 
