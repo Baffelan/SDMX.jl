@@ -20,6 +20,22 @@ using ..SDMX: SDMXElement, DimensionElement, AttributeElement, MeasureElement,
 # =================== HELPER FUNCTIONS ===================
 
 """
+    extract_codes_from_nodes(code_nodes::Vector{EzXML.Node}) -> Vector{NamedTuple}
+
+Extract information from multiple code nodes.
+
+This helper function is used by the generated codelist extraction to avoid
+comprehensions in generated function bodies.
+"""
+function extract_codes_from_nodes(code_nodes::Vector{EzXML.Node})
+    codes = Vector{NamedTuple}()
+    for code_node in code_nodes
+        push!(codes, extract_code_info(code_node))
+    end
+    return codes
+end
+
+"""
     extract_code_info(code_node::EzXML.Node) -> NamedTuple
 
 Extract information from a single code node in a codelist.
@@ -29,7 +45,7 @@ individual code elements efficiently.
 """
 function extract_code_info(code_node::EzXML.Node)
     code_id = code_node["id"]
-    parent_code_id = get(code_node, "parentCode", missing)
+    parent_code_id = haskey(code_node, "parentCode") ? code_node["parentCode"] : missing
     
     # Extract name
     name_node = findfirst(".//common:Name[@xml:lang='en']", code_node)
@@ -100,10 +116,16 @@ This generated function provides significant performance improvements over runti
             codelist_id = codelist_ref !== nothing ? codelist_ref["id"] : missing
             codelist_agency = codelist_ref !== nothing ? codelist_ref["agencyID"] : missing
             
-            # Extract text format information
+            # Extract text format information (check both TextFormat and EnumerationFormat)
             text_format = findfirst(".//structure:LocalRepresentation/structure:TextFormat", node)
-            data_type = text_format !== nothing && haskey(text_format, "textType") ? 
-                       text_format["textType"] : missing
+            enum_format = findfirst(".//structure:LocalRepresentation/structure:EnumerationFormat", node)
+            data_type = if text_format !== nothing && haskey(text_format, "textType")
+                text_format["textType"]
+            elseif enum_format !== nothing && haskey(enum_format, "textType")
+                enum_format["textType"]
+            else
+                missing
+            end
             
             # Compile-time node type checking
             is_time_dimension = nodename(node) == "TimeDimension"
@@ -123,7 +145,7 @@ This generated function provides significant performance improvements over runti
         quote
             # Compile-time specialized attribute extraction
             attr_id = node["id"]
-            assignment_status = get(node, "assignmentStatus", "Conditional")
+            assignment_status = haskey(node, "assignmentStatus") ? node["assignmentStatus"] : "Conditional"
             
             # Extract concept reference
             concept_ref = findfirst(".//structure:ConceptIdentity/Ref", node)
@@ -157,7 +179,7 @@ This generated function provides significant performance improvements over runti
     elseif T <: MeasureElement
         quote
             # Compile-time specialized measure extraction
-            measure_id = node["id"]
+            measure_id = haskey(node, "id") ? node["id"] : missing
             
             # Extract concept reference
             concept_ref = findfirst(".//structure:ConceptIdentity/Ref", node)
@@ -204,16 +226,16 @@ This generated function provides significant performance improvements over runti
         quote
             # Compile-time specialized codelist extraction
             codelist_id = node["id"]
-            agency_id = get(node, "agencyID", missing)
-            version = get(node, "version", "1.0")
+            agency_id = haskey(node, "agencyID") ? node["agencyID"] : missing
+            version = haskey(node, "version") ? node["version"] : "1.0"
             
             # Extract name
             name_node = findfirst(".//common:Name[@xml:lang='en']", node)
             name = name_node !== nothing ? nodecontent(name_node) : missing
             
-            # Extract codes with specialized iteration
+            # Extract codes with specialized iteration (call helper function)
             code_nodes = findall(".//structure:Code", node)
-            codes = [extract_code_info(code_node) for code_node in code_nodes]
+            codes = extract_codes_from_nodes(code_nodes)
             
             (
                 codelist_id = codelist_id,
@@ -226,8 +248,8 @@ This generated function provides significant performance improvements over runti
     elseif T <: TimeElement
         quote
             # Compile-time specialized time element extraction
-            start_period = get(node, "startPeriod", missing)
-            end_period = get(node, "endPeriod", missing)
+            start_period = haskey(node, "startPeriod") ? node["startPeriod"] : missing
+            end_period = haskey(node, "endPeriod") ? node["endPeriod"] : missing
             
             (
                 start_period = start_period,
@@ -320,7 +342,7 @@ This function provides a safety net for element types that don't have
 specialized @generated function implementations.
 """
 function extract_generic_element(node::EzXML.Node)
-    element_id = get(node, "id", missing)
+    element_id = haskey(node, "id") ? node["id"] : missing
     element_name = nodename(node)
     
     (

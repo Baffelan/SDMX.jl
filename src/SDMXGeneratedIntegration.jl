@@ -12,7 +12,7 @@ using ..SDMX: SDMXElement, DimensionElement, AttributeElement, MeasureElement,
 
 
 """
-    demonstrate_generated_parsing() -> Nothing
+    demonstrate_generated_parsing(; verbose::Bool=true) -> Nothing
 
 Demonstrate the usage of generated function SDMX parsing with examples.
 
@@ -20,10 +20,16 @@ This function provides a comprehensive demonstration of how to use the new
 @generated function system for parsing different types of SDMX elements,
 showing the performance benefits and ease of use.
 
+# Arguments
+- `verbose::Bool=true`: Whether to print output. Set to false for quiet operation during tests.
+
 # Examples
 ```julia
-# Run the full demonstration
+# Run the full demonstration with output
 demonstrate_generated_parsing()
+
+# Run quietly (for testing)
+demonstrate_generated_parsing(verbose=false)
 
 # This will show examples of:
 # - Type-specialized parsing for different element types
@@ -34,9 +40,9 @@ demonstrate_generated_parsing()
 # See also
 [`extract_sdmx_element`](@ref), [`benchmark_all_element_types`](@ref)
 """
-function demonstrate_generated_parsing()
-    println("🚀 Generated Function SDMX Parsing Demonstration")
-    println("=" ^ 60)
+function demonstrate_generated_parsing(; verbose::Bool=true)
+    verbose && println("🚀 Generated Function SDMX Parsing Demonstration")
+    verbose && println("=" ^ 60)
     
     # Example XML content for demonstration
     sample_xml = """
@@ -82,117 +88,123 @@ function demonstrate_generated_parsing()
     measure_node = findfirst(".//structure:PrimaryMeasure", root_node)
     
     if dim_node !== nothing && attr_node !== nothing && measure_node !== nothing
-        println("\\n📊 Parsing Different Element Types:")
-        println("-" ^ 40)
+        verbose && println("\\n📊 Parsing Different Element Types:")
+        verbose && println("-" ^ 40)
         
         # Demonstrate dimension parsing
-        println("\\n🎯 Dimension Element:")
+        verbose && println("\\n🎯 Dimension Element:")
         dim_data = extract_sdmx_element(DimensionElement, dim_node)
-        println("  ID: " * string(dim_data.dimension_id))
-        println("  Position: " * string(dim_data.position))
-        println("  Concept: " * string(dim_data.concept_id))
-        println("  Codelist: " * string(dim_data.codelist_id))
+        verbose && println("  ID: " * string(dim_data.dimension_id))
+        verbose && println("  Position: " * string(dim_data.position))
+        verbose && println("  Concept: " * string(dim_data.concept_id))
+        verbose && println("  Codelist: " * string(dim_data.codelist_id))
         
         # Demonstrate attribute parsing
-        println("\\n🏷️  Attribute Element:")
+        verbose && println("\\n🏷️  Attribute Element:")
         attr_data = extract_sdmx_element(AttributeElement, attr_node)
-        println("  ID: " * string(attr_data.attribute_id))
-        println("  Assignment: " * string(attr_data.assignment_status))
-        println("  Attachment: " * string(attr_data.attachment_level))
+        verbose && println("  ID: " * string(attr_data.attribute_id))
+        verbose && println("  Assignment: " * string(attr_data.assignment_status))
+        verbose && println("  Attachment: " * string(attr_data.attachment_level))
         
         # Demonstrate measure parsing
-        println("\\n📈 Measure Element:")
+        verbose && println("\\n📈 Measure Element:")
         measure_data = extract_sdmx_element(MeasureElement, measure_node)
-        println("  ID: " * string(measure_data.measure_id))
-        println("  Data Type: " * string(measure_data.data_type))
-        println("  Decimals: " * string(measure_data.decimals))
+        verbose && println("  ID: " * string(measure_data.measure_id))
+        verbose && println("  Data Type: " * string(measure_data.data_type))
+        verbose && println("  Decimals: " * string(measure_data.decimals))
         
-        println("\\n⚡ Performance Benefits:")
-        println("-" ^ 25)
-        println("✅ Compile-time XPath optimization")
-        println("✅ Type-specialized extraction paths")
-        println("✅ Reduced memory allocations")
-        println("✅ Better compiler optimization")
+        verbose && println("\\n⚡ Performance Benefits:")
+        verbose && println("-" ^ 25)
+        verbose && println("✅ Compile-time XPath optimization")
+        verbose && println("✅ Type-specialized extraction paths")
+        verbose && println("✅ Reduced memory allocations")
+        verbose && println("✅ Better compiler optimization")
         
-        println("\\n🎉 Generated function parsing demonstrated successfully!")
+        verbose && println("\\n🎉 Generated function parsing demonstrated successfully!")
     else
-        println("❌ Could not find sample nodes in XML")
+        verbose && println("❌ Could not find sample nodes in XML")
     end
 end
 
 # Benchmark functions removed per user request - SDMX processing doesn't need to be ultra-fast
 
 """
-    migration_guide() -> Nothing
+    migration_guide(; verbose::Bool=true) -> Nothing
 
 Provide a comprehensive guide for migrating to generated function parsing.
 
 This function explains how to update existing code to use the new @generated
 function system while maintaining compatibility and gaining performance benefits.
 
+# Arguments
+- `verbose::Bool=true`: Whether to print output. Set to false for quiet operation during tests.
+
 # Examples
 ```julia
 # Display migration instructions
 migration_guide()
+
+# Run quietly (for testing)
+migration_guide(verbose=false)
 ```
 
 # See also
 [`extract_sdmx_element`](@ref), [`demonstrate_generated_parsing`](@ref)
 """
-function migration_guide()
-    println("🔄 Migration Guide: Upgrading to Generated Function Parsing")
-    println("=" ^ 60)
+function migration_guide(; verbose::Bool=true)
+    verbose && println("🔄 Migration Guide: Upgrading to Generated Function Parsing")
+    verbose && println("=" ^ 60)
     
-    println("\\n📝 Step 1: Update Function Calls")
-    println("-" ^ 35)
-    println("Old approach:")
-    println("```julia")
-    println("# Traditional parsing")
-    println("dim_data = extract_dimension_info(dim_node)")
-    println("attr_data = extract_attribute_info(attr_node)")
-    println("```")
+    verbose && println("\\n📝 Step 1: Update Function Calls")
+    verbose && println("-" ^ 35)
+    verbose && println("Old approach:")
+    verbose && println("```julia")
+    verbose && println("# Traditional parsing")
+    verbose && println("dim_data = extract_dimension_info(dim_node)")
+    verbose && println("attr_data = extract_attribute_info(attr_node)")
+    verbose && println("```")
     
-    println("\\nNew approach:")
-    println("```julia")
-    println("# Generated function parsing")
-    println("dim_data = extract_sdmx_element(DimensionElement, dim_node)")
-    println("attr_data = extract_sdmx_element(AttributeElement, attr_node)")
-    println("```")
+    verbose && println("\\nNew approach:")
+    verbose && println("```julia")
+    verbose && println("# Generated function parsing")
+    verbose && println("dim_data = extract_sdmx_element(DimensionElement, dim_node)")
+    verbose && println("attr_data = extract_sdmx_element(AttributeElement, attr_node)")
+    verbose && println("```")
     
-    println("\\n🎯 Step 2: Import Required Types")
-    println("-" ^ 35)
-    println("```julia")
-    println("using SDMX: DimensionElement, AttributeElement, MeasureElement,")
-    println("           extract_sdmx_element")
-    println("```")
+    verbose && println("\\n🎯 Step 2: Import Required Types")
+    verbose && println("-" ^ 35)
+    verbose && println("```julia")
+    verbose && println("using SDMX: DimensionElement, AttributeElement, MeasureElement,")
+    verbose && println("           extract_sdmx_element")
+    verbose && println("```")
     
-    println("\\n⚡ Step 3: Update Batch Processing")
-    println("-" ^ 35)
-    println("```julia")
-    println("# Process multiple elements efficiently")
-    println("dimensions = [extract_sdmx_element(DimensionElement, node) ")
-    println("             for node in dimension_nodes]")
-    println("             ")
-    println("attributes = [extract_sdmx_element(AttributeElement, node)")
-    println("             for node in attribute_nodes]")
-    println("```")
+    verbose && println("\\n⚡ Step 3: Update Batch Processing")
+    verbose && println("-" ^ 35)
+    verbose && println("```julia")
+    verbose && println("# Process multiple elements efficiently")
+    verbose && println("dimensions = [extract_sdmx_element(DimensionElement, node) ")
+    verbose && println("             for node in dimension_nodes]")
+    verbose && println("             ")
+    verbose && println("attributes = [extract_sdmx_element(AttributeElement, node)")
+    verbose && println("             for node in attribute_nodes]")
+    verbose && println("```")
     
-    println("\\n🔧 Step 4: Performance Monitoring")
-    println("-" ^ 35)
-    println("```julia")
-    println("# Benchmark your specific use case")
-    println("results = benchmark_parsing_performance(DimensionElement, sample_node)")
-    println("println(\\\"Speedup: \\$(results.speedup_factor)x\\\")")
-    println("```")
+    verbose && println("\\n🔧 Step 4: Performance Monitoring")
+    verbose && println("-" ^ 35)
+    verbose && println("```julia")
+    verbose && println("# Benchmark your specific use case")
+    verbose && println("# results = benchmark_parsing_performance(DimensionElement, sample_node)")
+    verbose && println("# println(\"Speedup: \", results.speedup_factor, \"x\")")
+    verbose && println("```")
     
-    println("\\n✅ Benefits After Migration:")
-    println("-" ^ 30)
-    println("• Immediate performance improvements")
-    println("• Better type safety at compile time")
-    println("• Enhanced IDE support")
-    println("• Future-proof API design")
+    verbose && println("\\n✅ Benefits After Migration:")
+    verbose && println("-" ^ 30)
+    verbose && println("• Immediate performance improvements")
+    verbose && println("• Better type safety at compile time")
+    verbose && println("• Enhanced IDE support")
+    verbose && println("• Future-proof API design")
     
-    println("\\n🎉 Migration completed! Enjoy faster SDMX parsing!")
+    verbose && println("\\n🎉 Migration completed! Enjoy faster SDMX parsing!")
 end
 
 # =================== HELPER FUNCTIONS ===================

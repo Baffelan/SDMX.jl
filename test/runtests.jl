@@ -38,6 +38,12 @@ fixture_path(filename) = joinpath(@__DIR__, "fixtures", filename)
     @testset "Data Queries" begin
         include("test_dataqueries.jl")
     end
+    @testset "Generated Parsing" begin
+        include("test_generated_parsing.jl")
+    end
+    @testset "Generated Integration" begin
+        include("test_generated_integration.jl")
+    end
     @testset "LLM" begin
         include("test_llm.jl")
     end

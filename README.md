@@ -21,6 +21,7 @@ Core Julia package for SDMX (Statistical Data and Metadata eXchange) processing.
 - ✅ **Validation**: Comprehensive SDMX compliance checking
 - 🔗 **Pipeline Operations**: Composable data transformation workflows
 - 📡 **Data Queries**: Construct and execute SDMX data queries
+- ⚡ **High-Performance Parsing**: Generated function system for optimized element extraction
 
 ## Installation
 
@@ -303,12 +304,20 @@ Contributions welcome! Please ensure:
 3. Code follows Julia style conventions
 4. Documentation is updated
 
+## Documentation
+
+Detailed documentation for specific features:
+
+- **[Generated Function Parsing](docs/GENERATED_PARSING.md)**: High-performance element extraction system with compile-time optimization
+- **API Reference**: See exported functions in each module
+- **Examples**: Check the `test/` directory for comprehensive usage examples
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ## See Also
 
-- [SDMXLLM.jl](../SDMXLLM.jl) - LLM-powered extension for advanced transformations
+- [SDMXLLM.jl](www.github.com/Baffelan/SDMXLLM.jl) - LLM-powered extension for advanced transformations
 - [SDMX.org](https://sdmx.org) - Official SDMX documentation
-- [Pacific Data Hub](https://pacificdata.org) - Pacific region statistics
+- [PDH .Stat](https://stats.pacificdata.org) - Pacific region SDMX .Stat Data Explorer
