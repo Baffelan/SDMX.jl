@@ -20,6 +20,7 @@ Core Julia package for SDMX (Statistical Data and Metadata eXchange) processing.
 - 🎯 **Intelligent Mapping**: Suggest column mappings between source data and SDMX schemas
 - ✅ **Validation**: Comprehensive SDMX compliance checking
 - 🔗 **Pipeline Operations**: Composable data transformation workflows
+- ⚡ **High-Performance Parsing**: Generated function system for optimized element extraction
 
 ## Installation
 
@@ -241,6 +242,14 @@ Contributions welcome! Please ensure:
 2. New features include tests
 3. Code follows Julia style conventions
 4. Documentation is updated
+
+## Documentation
+
+Detailed documentation for specific features:
+
+- **[Generated Function Parsing](docs/GENERATED_PARSING.md)**: High-performance element extraction system with compile-time optimization
+- **API Reference**: See exported functions in each module
+- **Examples**: Check the `test/` directory for comprehensive usage examples
 
 ## License
 
