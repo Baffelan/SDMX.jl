@@ -306,7 +306,8 @@ provider. It handles URL building, HTTP requests, and data cleaning automaticall
 - `dataflow_id::String`: Dataflow identifier
 - `version::String="latest"`: Dataflow version
 - `key::String=""`: Pre-constructed SDMX key
-- `dimension_filters::Dict{String,String}=Dict{String,String}()`: Dimension filters
+- `filters::Dict{String,String}=Dict{String,String}()`: Combined filters including dimensions and TIME_PERIOD
+- `dimension_filters::Dict{String,String}=Dict{String,String}()`: Dimension filters (deprecated, use `filters`)
 - `start_period::Union{String,Nothing}=nothing`: Start date/period filter
 - `end_period::Union{String,Nothing}=nothing`: End date/period filter
 
@@ -349,15 +350,34 @@ println("Retrieved ", nrow(data), " observations")
 """
 function query_sdmx_data(base_url::String, agency_id::String, dataflow_id::String, version::String="latest";
                         key::String="",
+                        filters::Dict{String,String}=Dict{String,String}(),
                         dimension_filters::Dict{String,String}=Dict{String,String}(),
                         start_period::Union{String,Nothing}=nothing,
                         end_period::Union{String,Nothing}=nothing)
+    
+    # Merge filters and dimension_filters for backward compatibility
+    # Prefer filters if both are provided
+    actual_filters = !isempty(filters) ? filters : dimension_filters
+    
+    # Extract TIME_PERIOD from filters if present
+    if haskey(actual_filters, "TIME_PERIOD")
+        time_value = actual_filters["TIME_PERIOD"]
+        # Set both start and end period to the same value for exact match
+        if start_period === nothing
+            start_period = time_value
+        end
+        if end_period === nothing
+            end_period = time_value
+        end
+        # Remove TIME_PERIOD from dimension filters as it's not a dimension
+        actual_filters = Dict(k => v for (k, v) in actual_filters if k != "TIME_PERIOD")
+    end
     
     # If dimension_filters are provided without a key, fetch the schema
     schema = nothing
     actual_version = version
     
-    if !isempty(dimension_filters) && isempty(key)
+    if !isempty(actual_filters) && isempty(key)
         # Construct dataflow structure URL (works with "latest")
         base_url_clean = rstrip(base_url, '/')
         dataflow_url = base_url_clean * "/dataflow/" * agency_id * "/" * dataflow_id * "/" * version
@@ -383,7 +403,7 @@ function query_sdmx_data(base_url::String, agency_id::String, dataflow_id::Strin
             temp_schema = extract_dataflow_schema(dataflow_url)
             actual_version = temp_schema.dataflow_info.version
             # If we also need the schema for key construction, use it
-            if !isempty(dimension_filters) && isempty(key)
+            if !isempty(actual_filters) && isempty(key)
                 schema = temp_schema
             end
         catch e
@@ -395,7 +415,7 @@ function query_sdmx_data(base_url::String, agency_id::String, dataflow_id::Strin
     url = construct_data_url(base_url, agency_id, dataflow_id, actual_version,
                            schema=schema,
                            key=key,
-                           dimension_filters=dimension_filters,
+                           dimension_filters=actual_filters,
                            start_period=start_period, 
                            end_period=end_period)
     

@@ -89,9 +89,21 @@ is_valid_time_format("2024-01")  # true
 
 ### Query SDMX APIs
 ```julia
-# Fetch data with filters
+# Fetch data with filters (supports flexible filter formats)
 data = query_sdmx_data(base_url, "SPC", "DF_BP50",
     filters=Dict("GEO_PICT" => "FJ", "TIME_PERIOD" => "2023")
+)
+
+# Multiple values per dimension
+data = query_sdmx_data(base_url, "SPC", "DF_BP50",
+    filters=Dict("GEO_PICT" => ["FJ", "VU"], "TIME_PERIOD" => "2020:2023")
+)
+
+# With automatic retries and timeout handling
+data = query_sdmx_data(base_url, "SPC", "DF_BP50",
+    filters=Dict("GEO_PICT" => "FJ"),
+    max_retries=3,  # Default: 3 attempts
+    timeout=30      # Default: 30 seconds
 )
 
 # Summarize results
@@ -171,8 +183,8 @@ result = validate_sdmx_csv(validator, "pacific_trade.csv")
 - `is_valid_time_format(str)` - Check time format
 
 **Queries**
-- `query_sdmx_data(base, agency, dataflow; filters)` - Query API
-- `construct_sdmx_key(schema, filters)` - Build query key
+- `query_sdmx_data(base, agency, dataflow; filters, max_retries, timeout)` - Query API with retry logic
+- `construct_sdmx_key(schema, filters)` - Build query key (supports arrays and ranges)
 
 **Pipeline**
 - `chain(ops...)` - Chain operations
