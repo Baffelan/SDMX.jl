@@ -60,7 +60,7 @@ export read_source_data_excel, profile_excel_file, detect_excel_structure
 # === DATA VALIDATION SYSTEM ===
 # Comprehensive validation framework for SDMX data quality and compliance
 export create_validator, validate_sdmx_csv
-export generate_validation_report, preview_validation_output
+export generate_validation_report, preview_validation_output, is_valid_time_format
 
 # === DATA QUERY & RETRIEVAL ===
 # Functions for constructing queries and retrieving SDMX data from APIs
