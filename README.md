@@ -20,6 +20,7 @@ Core Julia package for SDMX (Statistical Data and Metadata eXchange) processing.
 - 🎯 **Intelligent Mapping**: Suggest column mappings between source data and SDMX schemas
 - ✅ **Validation**: Comprehensive SDMX compliance checking
 - 🔗 **Pipeline Operations**: Composable data transformation workflows
+- 📡 **Data Queries**: Construct and execute SDMX data queries
 
 ## Installation
 
@@ -70,6 +71,7 @@ schema = extract_dataflow_schema(url)
 required_cols = get_required_columns(schema)
 optional_cols = get_optional_columns(schema)
 codelist_cols = get_codelist_columns(schema)
+dimension_order = get_dimension_order(schema)
 ```
 
 ### SDMXCodelists
@@ -81,8 +83,11 @@ all_codes = extract_all_codelists(url)
 # Get only codes that appear in actual data
 used_codes = extract_all_codelists(url, true)
 
-# Extract specific codelist
-geo_codes = extract_codelist_from_url(url, "CL_GEO_PICT")
+# Filter by availability
+filtered_codes = filter_codelists_by_availability(codelists_df, dataflow_url)
+
+# Map codelist to dimension
+dimension_id = map_codelist_to_dimension(codelist_id)
 ```
 
 ### SDMXAvailability
@@ -97,7 +102,8 @@ countries = get_available_values(availability, "GEO_PICT")
 time_range = get_time_coverage(availability)
 print_availability_summary(availability)
 
-# Find data gaps
+# Analyze coverage
+summary = get_data_coverage_summary(availability)
 gaps = find_data_gaps(availability, expected_values)
 ```
 
@@ -111,86 +117,140 @@ data = read_source_data("file.xlsx")
 profile = profile_source_data(data, "file.xlsx")
 print_source_profile(profile)
 
-# Column analysis
-temporal_cols = get_temporal_columns(profile)
-categorical_cols = get_categorical_columns(profile)
-numeric_cols = get_numeric_columns(profile)
-```
-
-### SDMXMappingInference
-Advanced mapping with fuzzy matching:
-```julia
-# Create inference engine
-engine = create_inference_engine(
-    fuzzy_threshold=0.7,
-    min_confidence=0.3
-)
-
-# Infer mappings
-result = infer_advanced_mappings(engine, profile, schema, source_data)
-println("Mapping quality: " * string(result.quality_score))
-
-# Analyze specific mappings
-score = fuzzy_match_score("country", "GEO_PICT")
-patterns = analyze_value_patterns(values, codelist)
+# Suggest mappings
+mappings = suggest_column_mappings(profile, schema)
 ```
 
 ### SDMXValidation
 Validate SDMX compliance:
 ```julia
-# Validate data structure
-validation = validate_dataframe(df, schema)
-if !validation.is_valid
-    println("Validation errors: " * join(validation.errors, "\n"))
-end
+# Create validator
+validator = create_validator(schema)
 
-# Check specific validations
-is_valid_time_format("2024-01")  # true
-is_valid_observation_value("123.45")  # true
+# Validate CSV file
+result = validate_sdmx_csv(validator, "data.csv")
+
+# Generate validation report
+report = generate_validation_report(result)
+preview_validation_output(result)
+
+# Check specific format
+is_valid = is_valid_time_format("2024-01")  # true
+```
+
+### SDMXDataQueries
+Query and retrieve SDMX data:
+```julia
+# Construct data URL
+data_url = construct_data_url(base_url, agency_id, dataflow_id, version)
+
+# Fetch SDMX data
+data = fetch_sdmx_data(url)
+
+# Query with filters
+result = query_sdmx_data(base_url, agency_id, dataflow_id, 
+                         filters=Dict("GEO_PICT" => "FJ"))
+
+# Summarize data
+summary = summarize_data(data)
+
+# Construct SDMX key
+key = construct_sdmx_key(schema, filters)
 ```
 
 ### SDMXPipelineOps
 Composable pipeline operations:
 ```julia
-using SDMX: @sdmx_pipeline
-
 # Define transformation pipeline
-@sdmx_pipeline function transform_data(data)
-    data |>
-    profile_with() |>
-    validate_with(schema) |>
-    map_with(mappings) |>
-    output_to("transformed.csv")
-end
+pipeline = chain(
+    profile_with("source.csv"),
+    validate_with(schema),
+    tap(df -> println("Processing " * string(nrow(df)) * " rows"))
+)
 
-# Check if data conforms to schema
+# Apply pipeline
+result = data |> pipeline
+
+# Check conformance
 if data ⊆ schema
     println("Data structure matches SDMX schema")
 end
+
+# Validate with operator
+validated = data ⇒ validator
+
+# Branch on condition
+branched = branch(
+    df -> nrow(df) > 1000,
+    df -> parallel_map(process_chunk)(df),
+    df -> process_small(df)
+)
+```
+
+### SDMXHelpers
+Utility functions:
+```julia
+# Check if string is URL
+is_url("https://example.com")  # true
+
+# Normalize SDMX URL
+normalized = normalize_sdmx_url(url)
+
+# Fetch SDMX XML
+doc = fetch_sdmx_xml(url_or_file)
 ```
 
 ## API Reference
 
+### Core Data Structures
+- `DataflowSchema` - Complete SDMX dataflow schema
+- `SourceDataProfile` - Source data profiling results
+- `ColumnProfile` - Individual column analysis
+- `AvailabilityConstraint` - Data availability information
+- `ValidationResult` - Validation outcome with issues
+- `SDMXValidator` - Configurable validation engine
+
 ### Schema Functions
 - `extract_dataflow_schema(url)` - Extract complete dataflow schema
+- `extract_concepts(url)` - Extract concept definitions
 - `get_required_columns(schema)` - Get mandatory SDMX columns
 - `get_optional_columns(schema)` - Get optional SDMX columns
-- `get_time_dimension(schema)` - Get time dimension information
+- `get_codelist_columns(schema)` - Get columns with codelists
+- `get_dimension_order(schema)` - Get dimension ordering
 
 ### Codelist Functions
 - `extract_all_codelists(url, filter_by_availability)` - Extract all codelists
-- `extract_codelist_from_url(url, codelist_id)` - Extract specific codelist
-- `get_codelist_for_dimension(schema, dimension)` - Get codelist for dimension
+- `filter_codelists_by_availability(codelists, url)` - Filter by availability
+- `get_available_codelist_summary(url)` - Get codelist summary
+- `map_codelist_to_dimension(codelist_id)` - Map to dimension ID
 
 ### Data Analysis Functions
 - `profile_source_data(data, filepath)` - Profile data structure
 - `suggest_column_mappings(profile, schema)` - Basic mapping suggestions
-- `infer_column_mappings(data, schema)` - Direct data-to-schema mapping
+- `print_source_profile(profile)` - Display profile summary
 
 ### Validation Functions
-- `validate_dataframe(df, schema)` - Validate against SDMX schema
+- `create_validator(schema; kwargs...)` - Create validator instance
+- `validate_sdmx_csv(validator, filepath)` - Validate CSV file
+- `generate_validation_report(result)` - Generate report
+- `preview_validation_output(result)` - Preview issues
 - `is_valid_time_format(str)` - Check time format validity
-- `is_valid_observation_value(str)` - Check observation value
+
+### Data Query Functions
+- `construct_data_url(base, agency, dataflow, version)` - Build URL
+- `fetch_sdmx_data(url)` - Fetch data from API
+- `query_sdmx_data(base, agency, dataflow; kwargs...)` - Query with filters
+- `construct_sdmx_key(schema, filters)` - Build query key
+- `summarize_data(data)` - Get data summary
+
+### Pipeline Functions
+- `chain(operations...)` - Chain operations
+- `pipeline(operations...)` - Create pipeline
+- `validate_with(schema)` - Validation operation
+- `profile_with(filename)` - Profiling operation
+- `tap(function)` - Side-effect operation
+- `branch(condition, true_path, false_path)` - Conditional branch
+- `parallel_map(function)` - Parallel processing
 
 ## Working with Pacific Data Hub
 
@@ -214,7 +274,8 @@ profile = profile_source_data(my_data, "pacific_trade_data.csv")
 
 # Map and validate
 mappings = suggest_column_mappings(profile, schema)
-validation = validate_dataframe(my_data, schema)
+validator = create_validator(schema)
+validation = validate_sdmx_csv(validator, "pacific_trade_data.csv")
 ```
 
 ## Testing
@@ -225,14 +286,14 @@ using Pkg
 Pkg.test("SDMX")
 ```
 
-All 108 tests should pass, covering:
+Tests cover:
 - Dataflow schema extraction
 - Codelist management
 - Data availability analysis
 - Source data profiling
-- Mapping inference
 - Validation logic
 - Pipeline operations
+- Data queries
 
 ## Contributing
 
