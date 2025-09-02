@@ -60,8 +60,8 @@ end
 [`AvailabilityConstraint`](@ref), [`extract_availability`](@ref), [`get_time_coverage`](@ref)
 """
 struct TimeAvailability
-    start_date::Union{Date, String}
-    end_date::Union{Date, String}
+    start_date::Union{Date, String, Int}  # Can be Date, String (for quarters/semesters), or Int (for years)
+    end_date::Union{Date, String, Int}    # Can be Date, String (for quarters/semesters), or Int (for years)
     format::String  # "date", "year", "quarter", etc.
     total_periods::Int
     gaps::Vector{String}  # Missing periods within the range
@@ -398,12 +398,221 @@ function get_available_values(availability::AvailabilityConstraint, dimension_id
 end
 
 """
-    get_time_coverage(availability::AvailabilityConstraint) -> Union{TimeAvailability, Nothing}
+    get_time_coverage(availability::AvailabilityConstraint; frequency_aware::Bool=true) -> Union{TimeAvailability, Nothing}
 
-Gets time coverage information if available.
+Gets time coverage information if available. When frequency_aware is true, adjusts the 
+representation based on the FREQ dimension if present, following SDMX time period formats.
+
+# SDMX Time Period Formats
+- A: Annual (YYYY) - e.g., 2010
+- S: Semester/half year (YYYY-Sn) - e.g., 2010-S1
+- T: Trimester (YYYY-Tn) - e.g., 2010-T1
+- Q: Quarterly (YYYY-Qn) - e.g., 2010-Q1
+- M: Monthly (YYYY-MM) - e.g., 2010-01
+- D: Daily (YYYY-MM-DD) - e.g., 2010-01-01
+- H: Hourly (YYYY-MM-DDThh) - e.g., 2010-01-01T13
+- I: DateTime (YYYY-MM-DDThh:mm:ss) - e.g., 2010-01-01T20:22:00
+
+# Arguments
+- `availability`: The availability constraint
+- `frequency_aware`: Whether to adjust representation based on frequency (default: true)
+
+# Examples
+```julia
+# For annual data (FREQ="A"), returns years instead of full dates
+time_coverage = get_time_coverage(availability)
+# TimeAvailability with start_date=1970, end_date=2030, format="year"
+
+# Force date representation regardless of frequency
+time_coverage = get_time_coverage(availability, frequency_aware=false)
+```
 """
-function get_time_coverage(availability::AvailabilityConstraint)
-    return availability.time_coverage
+function get_time_coverage(availability::AvailabilityConstraint; frequency_aware::Bool=true)
+    time_cov = availability.time_coverage
+    
+    if time_cov === nothing || !frequency_aware
+        return time_cov
+    end
+    
+    # Check if FREQ dimension exists
+    freq_values = get_available_values(availability, "FREQ")
+    if isempty(freq_values)
+        return time_cov
+    end
+    
+    freq = freq_values[1]  # Assume single frequency value
+    
+    # Parse start and end dates based on frequency
+    start_parsed = parse_time_period(time_cov.start_date, freq)
+    end_parsed = parse_time_period(time_cov.end_date, freq)
+    
+    # Determine format string based on frequency
+    format_str = get_frequency_format(freq)
+    
+    # Calculate total periods based on frequency
+    total_periods = calculate_periods_between(start_parsed, end_parsed, freq, time_cov.total_periods)
+    
+    return TimeAvailability(
+        start_parsed,
+        end_parsed,
+        format_str,
+        total_periods,
+        time_cov.gaps
+    )
+end
+
+"""
+    parse_time_period(date_input::Union{Date, String}, freq::String) -> Union{Int, String, Date}
+
+Parses a time period based on the frequency specification.
+"""
+function parse_time_period(date_input::Union{Date, String}, freq::String)
+    if freq == "A"  # Annual - return just the year as Int
+        if date_input isa Date
+            return year(date_input)
+        elseif date_input isa String && length(date_input) >= 4
+            return parse(Int, date_input[1:4])
+        else
+            return date_input
+        end
+    elseif freq == "S"  # Semester
+        if date_input isa Date
+            y = year(date_input)
+            s = month(date_input) <= 6 ? 1 : 2
+            return string(y) * "-S" * string(s)
+        elseif date_input isa String && occursin("-S", date_input)
+            return date_input  # Already in correct format
+        elseif date_input isa String && length(date_input) >= 7
+            y = date_input[1:4]
+            m = parse(Int, date_input[6:7])
+            s = m <= 6 ? 1 : 2
+            return string(y) * "-S" * string(s)
+        else
+            return date_input
+        end
+    elseif freq == "T"  # Trimester
+        if date_input isa Date
+            y = year(date_input)
+            t = div(month(date_input) - 1, 4) + 1
+            return string(y) * "-T" * string(t)
+        elseif date_input isa String && occursin("-T", date_input)
+            return date_input
+        elseif date_input isa String && length(date_input) >= 7
+            y = date_input[1:4]
+            m = parse(Int, date_input[6:7])
+            t = div(m - 1, 4) + 1
+            return string(y) * "-T" * string(t)
+        else
+            return date_input
+        end
+    elseif freq == "Q"  # Quarterly
+        if date_input isa Date
+            y = year(date_input)
+            q = div(month(date_input) - 1, 3) + 1
+            return string(y) * "-Q" * string(q)
+        elseif date_input isa String && occursin("-Q", date_input)
+            return date_input
+        elseif date_input isa String && length(date_input) >= 7
+            y = date_input[1:4]
+            m = parse(Int, date_input[6:7])
+            q = div(m - 1, 3) + 1
+            return string(y) * "-Q" * string(q)
+        else
+            return date_input
+        end
+    elseif freq == "M"  # Monthly
+        if date_input isa Date
+            return Dates.format(date_input, "yyyy-mm")
+        elseif date_input isa String && length(date_input) >= 7
+            return date_input[1:7]  # YYYY-MM format
+        else
+            return date_input
+        end
+    elseif freq == "D"  # Daily
+        if date_input isa Date
+            return date_input
+        elseif date_input isa String && length(date_input) >= 10
+            return Date(date_input[1:10])
+        else
+            return date_input
+        end
+    elseif freq == "H"  # Hourly
+        if date_input isa Date
+            return Dates.format(date_input, "yyyy-mm-ddTHH")
+        else
+            return date_input  # Keep as is
+        end
+    elseif freq == "I"  # DateTime
+        return date_input  # Keep full datetime
+    else
+        return date_input  # Unknown frequency
+    end
+end
+
+"""
+    get_frequency_format(freq::String) -> String
+
+Returns the format description for a given frequency code.
+"""
+function get_frequency_format(freq::String)
+    freq_formats = Dict(
+        "A" => "year",
+        "S" => "semester",
+        "T" => "trimester",
+        "Q" => "quarter",
+        "M" => "month",
+        "D" => "day",
+        "H" => "hour",
+        "I" => "datetime"
+    )
+    return get(freq_formats, freq, "unknown")
+end
+
+"""
+    calculate_periods_between(start_period, end_period, freq::String, default::Int) -> Int
+
+Calculates the number of periods between start and end based on frequency.
+"""
+function calculate_periods_between(start_period, end_period, freq::String, default::Int)
+    try
+        if freq == "A" && start_period isa Int && end_period isa Int
+            return end_period - start_period + 1
+        elseif freq == "S" && start_period isa String && end_period isa String
+            # Parse semester format YYYY-Sn
+            start_year = parse(Int, start_period[1:4])
+            start_sem = parse(Int, start_period[end])
+            end_year = parse(Int, end_period[1:4])
+            end_sem = parse(Int, end_period[end])
+            return (end_year - start_year) * 2 + (end_sem - start_sem) + 1
+        elseif freq == "T" && start_period isa String && end_period isa String
+            # Parse trimester format YYYY-Tn
+            start_year = parse(Int, start_period[1:4])
+            start_tri = parse(Int, start_period[end])
+            end_year = parse(Int, end_period[1:4])
+            end_tri = parse(Int, end_period[end])
+            return (end_year - start_year) * 3 + (end_tri - start_tri) + 1
+        elseif freq == "Q" && start_period isa String && end_period isa String
+            # Parse quarter format YYYY-Qn
+            start_year = parse(Int, start_period[1:4])
+            start_qtr = parse(Int, start_period[end])
+            end_year = parse(Int, end_period[1:4])
+            end_qtr = parse(Int, end_period[end])
+            return (end_year - start_year) * 4 + (end_qtr - start_qtr) + 1
+        elseif freq == "M" && start_period isa String && end_period isa String
+            # Parse month format YYYY-MM
+            start_year = parse(Int, start_period[1:4])
+            start_month = parse(Int, start_period[6:7])
+            end_year = parse(Int, end_period[1:4])
+            end_month = parse(Int, end_period[6:7])
+            return (end_year - start_year) * 12 + (end_month - start_month) + 1
+        elseif freq == "D" && start_period isa Date && end_period isa Date
+            return Dates.value(end_period - start_period) + 1
+        else
+            return default
+        end
+    catch
+        return default  # Return default if calculation fails
+    end
 end
 
 """
@@ -520,6 +729,88 @@ function find_data_gaps(availability::AvailabilityConstraint, expected_values::D
     end
     
     return gaps
+end
+
+"""
+    get_time_period_range(time_coverage::TimeAvailability) -> Union{UnitRange{Int}, Vector{String}, Vector{Date}}
+
+Returns an appropriate range or vector of time periods based on the format.
+
+# Examples
+```julia
+time_coverage = get_time_coverage(availability)
+periods = get_time_period_range(time_coverage)
+
+# For annual data: returns 1970:2030
+# For quarterly data: returns ["2020-Q1", "2020-Q2", ..., "2023-Q4"]
+# For daily data: returns Date range
+```
+"""
+function get_time_period_range(time_coverage::TimeAvailability)
+    if time_coverage.format == "year" && time_coverage.start_date isa Int && time_coverage.end_date isa Int
+        return time_coverage.start_date:time_coverage.end_date
+    elseif time_coverage.format == "day" && time_coverage.start_date isa Date && time_coverage.end_date isa Date
+        return time_coverage.start_date:Day(1):time_coverage.end_date
+    elseif time_coverage.format in ["quarter", "semester", "trimester", "month"]
+        # For these, generate the full sequence
+        return generate_period_sequence(time_coverage)
+    else
+        # Return empty for unknown formats
+        return String[]
+    end
+end
+
+"""
+    generate_period_sequence(time_coverage::TimeAvailability) -> Vector{String}
+
+Generates a sequence of period strings for formats like quarters, semesters, etc.
+"""
+function generate_period_sequence(time_coverage::TimeAvailability)
+    periods = String[]
+    
+    if time_coverage.format == "quarter" && time_coverage.start_date isa String && time_coverage.end_date isa String
+        # Parse start and end quarters
+        start_year = parse(Int, time_coverage.start_date[1:4])
+        start_qtr = parse(Int, time_coverage.start_date[end])
+        end_year = parse(Int, time_coverage.end_date[1:4])
+        end_qtr = parse(Int, time_coverage.end_date[end])
+        
+        for year in start_year:end_year
+            q_start = (year == start_year) ? start_qtr : 1
+            q_end = (year == end_year) ? end_qtr : 4
+            for q in q_start:q_end
+                push!(periods, string(year) * "-Q" * string(q))
+            end
+        end
+    elseif time_coverage.format == "semester" && time_coverage.start_date isa String && time_coverage.end_date isa String
+        start_year = parse(Int, time_coverage.start_date[1:4])
+        start_sem = parse(Int, time_coverage.start_date[end])
+        end_year = parse(Int, time_coverage.end_date[1:4])
+        end_sem = parse(Int, time_coverage.end_date[end])
+        
+        for year in start_year:end_year
+            s_start = (year == start_year) ? start_sem : 1
+            s_end = (year == end_year) ? end_sem : 2
+            for s in s_start:s_end
+                push!(periods, string(year) * "-S" * string(s))
+            end
+        end
+    elseif time_coverage.format == "month" && time_coverage.start_date isa String && time_coverage.end_date isa String
+        start_year = parse(Int, time_coverage.start_date[1:4])
+        start_month = parse(Int, time_coverage.start_date[6:7])
+        end_year = parse(Int, time_coverage.end_date[1:4])
+        end_month = parse(Int, time_coverage.end_date[6:7])
+        
+        for year in start_year:end_year
+            m_start = (year == start_year) ? start_month : 1
+            m_end = (year == end_year) ? end_month : 12
+            for m in m_start:m_end
+                push!(periods, string(year) * "-" * lpad(m, 2, '0'))
+            end
+        end
+    end
+    
+    return periods
 end
 
 """

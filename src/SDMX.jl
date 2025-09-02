@@ -47,7 +47,7 @@ export construct_availability_url, map_codelist_to_dimension
 
 # === DATA AVAILABILITY ANALYSIS ===
 # Functions for analyzing data availability constraints and coverage
-export extract_availability, extract_availability_from_dataflow, extract_availability_from_node, get_available_values, get_time_coverage
+export extract_availability, extract_availability_from_dataflow, extract_availability_from_node, get_available_values, get_time_coverage, get_time_period_range
 export extract_time_availability, get_time_period_values, extract_dimension_values
 export compare_schema_availability, get_data_coverage_summary, find_data_gaps, print_availability_summary
 
