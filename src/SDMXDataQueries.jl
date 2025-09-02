@@ -15,6 +15,13 @@ using DataFrames, CSV, HTTP, Statistics
 
 
 """
+Helper function to format dimension values for SDMX keys.
+"""
+format_dimension_value(value::String) = value
+format_dimension_value(values::Vector{String}) = join(values, "+")
+format_dimension_value(::Nothing) = ""
+
+"""
     construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,String}) -> String
 
 Constructs a proper SDMX key using dataflow schema dimension ordering.
@@ -50,7 +57,6 @@ key = construct_sdmx_key(schema, filters)
 """
 function construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,String})
     # Get dimension order from schema
-    # This needs to be implemented in the schema extraction functions
     dimension_order = get_dimension_order(schema)
     
     # Validate that all filter dimensions exist in schema
@@ -66,6 +72,48 @@ function construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,String}
     for dim in dimension_order
         value = get(filters, dim, "")  # Empty string for unfiltered dimensions
         push!(key_parts, value)
+    end
+    
+    return join(key_parts, ".")
+end
+
+"""
+    construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,<:Any}) -> String
+
+Constructs a proper SDMX key with support for multiple values per dimension.
+
+This method handles filters with array values, automatically converting them
+to SDMX '+' notation for multiple selections.
+
+# Arguments
+- `schema::DataflowSchema`: DataflowSchema containing dimension definitions and order
+- `filters::Dict{String,<:Any}`: Dict with String or Vector{String} values
+
+# Examples
+```julia
+# With multiple values
+filters = Dict("GEO_PICT" => ["FJ", "VU"], "FREQ" => "A")
+key = construct_sdmx_key(schema, filters)
+# Returns: "A..FJ+VU..." (with '+' for multiple values)
+```
+"""
+function construct_sdmx_key(schema::DataflowSchema, filters::Dict{String,<:Any})
+    # Get dimension order from schema
+    dimension_order = get_dimension_order(schema)
+    
+    # Validate that all filter dimensions exist in schema
+    schema_dimensions = Set(dimension_order)
+    for dim in keys(filters)
+        if !(dim in schema_dimensions)
+            throw(ArgumentError("Dimension '$dim' not found in dataflow schema. Available dimensions: $(join(dimension_order, ", "))"))
+        end
+    end
+    
+    # Construct key with proper dot notation
+    key_parts = String[]
+    for dim in dimension_order
+        value = get(filters, dim, nothing)
+        push!(key_parts, format_dimension_value(value))
     end
     
     return join(key_parts, ".")
@@ -129,7 +177,7 @@ url = construct_data_url(
 function construct_data_url(base_url::String, agency_id::String, dataflow_id::String, version::String;
                            schema::Union{DataflowSchema,Nothing}=nothing,
                            key::String="",
-                           dimension_filters::Dict{String,String}=Dict{String,String}(),
+                           dimension_filters::Dict{String,<:Any}=Dict{String,Any}(),
                            start_period::Union{String,Nothing}=nothing,
                            end_period::Union{String,Nothing}=nothing,
                            dimension_at_observation::String="AllDimensions")
@@ -306,8 +354,10 @@ provider. It handles URL building, HTTP requests, and data cleaning automaticall
 - `dataflow_id::String`: Dataflow identifier
 - `version::String="latest"`: Dataflow version
 - `key::String=""`: Pre-constructed SDMX key
-- `filters::Dict{String,String}=Dict{String,String}()`: Combined filters including dimensions and TIME_PERIOD
-- `dimension_filters::Dict{String,String}=Dict{String,String}()`: Dimension filters (deprecated, use `filters`)
+- `filters::Dict{String,<:Any}`: Combined filters including dimensions and TIME_PERIOD
+  - Dimension values can be String or Vector{String} for multiple values
+  - TIME_PERIOD can be a single value, array, or range format "start:end"
+- `dimension_filters::Dict{String,<:Any}`: Dimension filters (deprecated, use `filters`)
 - `start_period::Union{String,Nothing}=nothing`: Start date/period filter
 - `end_period::Union{String,Nothing}=nothing`: End date/period filter
 
@@ -316,19 +366,25 @@ provider. It handles URL building, HTTP requests, and data cleaning automaticall
 
 # Examples
 ```julia
-# Pacific Data Hub - all Tonga data since 2022
+# Pacific Data Hub - multiple countries with time range
 data = query_sdmx_data(
     "https://stats-sdmx-disseminate.pacificdata.org/rest",
-    "SPC", "DF_BP50", "1.0",
-    dimension_filters=Dict("GEO_PICT" => "TO"),
-    start_period="2022"
+    "SPC", "DF_BP50",
+    filters=Dict("GEO_PICT" => ["FJ", "VU"], "TIME_PERIOD" => "2020:2023")
+)
+
+# Single country, specific year
+data = query_sdmx_data(
+    "https://stats-sdmx-disseminate.pacificdata.org/rest",
+    "SPC", "DF_BP50",
+    filters=Dict("GEO_PICT" => "TO", "TIME_PERIOD" => "2022")
 )
 
 # ECB - EUR/USD daily exchange rates
 data = query_sdmx_data(
     "https://sdw-wsrest.ecb.europa.eu/service",
     "ECB", "EXR", "1.0",
-    dimension_filters=Dict("FREQ" => "D", "CURRENCY" => "USD", "CURRENCY_DENOM" => "EUR"),
+    filters=Dict("FREQ" => "D", "CURRENCY" => "USD", "CURRENCY_DENOM" => "EUR"),
     start_period="2024-01-01"
 )
 
@@ -350,8 +406,8 @@ println("Retrieved ", nrow(data), " observations")
 """
 function query_sdmx_data(base_url::String, agency_id::String, dataflow_id::String, version::String="latest";
                         key::String="",
-                        filters::Dict{String,String}=Dict{String,String}(),
-                        dimension_filters::Dict{String,String}=Dict{String,String}(),
+                        filters::Dict{String,<:Any}=Dict{String,Any}(),
+                        dimension_filters::Dict{String,<:Any}=Dict{String,Any}(),
                         start_period::Union{String,Nothing}=nothing,
                         end_period::Union{String,Nothing}=nothing)
     
@@ -362,13 +418,30 @@ function query_sdmx_data(base_url::String, agency_id::String, dataflow_id::Strin
     # Extract TIME_PERIOD from filters if present
     if haskey(actual_filters, "TIME_PERIOD")
         time_value = actual_filters["TIME_PERIOD"]
-        # Set both start and end period to the same value for exact match
-        if start_period === nothing
-            start_period = time_value
+        
+        # Handle time period range format "2020:2023"
+        if isa(time_value, String) && occursin(":", time_value)
+            parts = split(time_value, ":")
+            if length(parts) == 2
+                if start_period === nothing
+                    start_period = String(strip(parts[1]))
+                end
+                if end_period === nothing
+                    end_period = String(strip(parts[2]))
+                end
+            else
+                throw(ArgumentError("Invalid TIME_PERIOD range format. Use 'start:end' (e.g., '2020:2023')"))
+            end
+        else
+            # Single value or other format - set both start and end to same value
+            if start_period === nothing
+                start_period = string(time_value)
+            end
+            if end_period === nothing
+                end_period = string(time_value)
+            end
         end
-        if end_period === nothing
-            end_period = time_value
-        end
+        
         # Remove TIME_PERIOD from dimension filters as it's not a dimension
         actual_filters = Dict(k => v for (k, v) in actual_filters if k != "TIME_PERIOD")
     end
