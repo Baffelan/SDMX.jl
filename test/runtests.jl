@@ -26,6 +26,9 @@ fixture_path(filename) = joinpath(@__DIR__, "fixtures", filename)
     @testset "Availability" begin
         include("test_availability.jl")
     end
+    @testset "Availability Time Functions" begin
+        include("test_availability_time.jl")
+    end
     @testset "Data Sources" begin
         include("test_datasources.jl")
     end

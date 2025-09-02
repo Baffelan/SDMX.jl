@@ -199,6 +199,76 @@ using DataFrames
                        Tuple{String, String, String, String})
         @test hasmethod(SDMX.query_sdmx_data, 
                        Tuple{String, String, String})  # version defaults to "latest"
+        
+        # Test TIME_PERIOD range parsing without actual HTTP calls
+        # The function should extract start/end from TIME_PERIOD filter
+        # We can't fully test without HTTP but can verify the logic works
+    end
+    
+    @testset "summarize_data" begin
+        # Test with a sample DataFrame
+        test_data = DataFrame(
+            TIME_PERIOD = ["2020", "2021", "2022", "2023"],
+            OBS_VALUE = [100.0, 150.0, missing, 200.0],
+            GEO_PICT = ["FJ", "FJ", "TO", "TO"],
+            INDICATOR = ["GDP", "GDP", "CPI", "CPI"]
+        )
+        
+        summary = SDMX.summarize_data(test_data)
+        
+        @test summary["total_observations"] == 4
+        @test summary["time_range"] == ("2020", "2023")
+        @test haskey(summary, "obs_stats")
+        @test summary["obs_stats"].min == 100.0
+        @test summary["obs_stats"].max == 200.0
+        @test summary["obs_stats"].mean == 150.0
+        @test summary["obs_stats"].count == 3  # 3 non-missing values
+        
+        # Test unique dimension values (note: lowercase keys in summary)
+        @test summary["geo_pict"] == ["FJ", "TO"]
+        @test summary["indicator"] == ["CPI", "GDP"]
+        
+        # Test with empty DataFrame
+        empty_summary = SDMX.summarize_data(DataFrame())
+        @test empty_summary["total_observations"] == 0
+        
+        # Test with DataFrame without standard SDMX columns
+        non_standard_data = DataFrame(
+            COL1 = [1, 2, 3],
+            COL2 = ["A", "B", "C"]
+        )
+        non_standard_summary = SDMX.summarize_data(non_standard_data)
+        @test non_standard_summary["total_observations"] == 3
+        @test !haskey(non_standard_summary, "time_range")
+        @test !haskey(non_standard_summary, "obs_stats")
+        # Non-SDMX columns won't be included in summary
+        @test !haskey(non_standard_summary, "COL2")
+        
+        # Test with all missing OBS_VALUE
+        all_missing_data = DataFrame(
+            TIME_PERIOD = ["2020", "2021"],
+            OBS_VALUE = [missing, missing]
+        )
+        all_missing_summary = SDMX.summarize_data(all_missing_data)
+        @test all_missing_summary["total_observations"] == 2
+        @test !haskey(all_missing_summary, "obs_stats")  # No stats if all values are missing
+        
+        # Test with FREQ dimension (another common SDMX dimension)
+        freq_data = DataFrame(
+            TIME_PERIOD = ["2020", "2021"],
+            OBS_VALUE = [100.0, 200.0],
+            FREQ = ["A", "A"]
+        )
+        freq_summary = SDMX.summarize_data(freq_data)
+        @test freq_summary["freq"] == ["A"]
+    end
+    
+    @testset "format_dimension_value" begin
+        # Test the helper function for formatting dimension values
+        @test SDMX.format_dimension_value("TEST") == "TEST"
+        @test SDMX.format_dimension_value(["A", "B", "C"]) == "A+B+C"
+        @test SDMX.format_dimension_value(nothing) == ""
+        @test SDMX.format_dimension_value(["SINGLE"]) == "SINGLE"
     end
     
     @testset "fetch_sdmx_data error handling" begin

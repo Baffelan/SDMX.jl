@@ -68,6 +68,46 @@ struct TimeAvailability
 end
 
 """
+    in(year::Int, time::TimeAvailability) -> Bool
+
+Check if a year is within the time coverage range.
+"""
+function Base.in(year::Int, time::TimeAvailability)
+    if time.format == "year" && time.start_date isa Int && time.end_date isa Int
+        return time.start_date <= year <= time.end_date
+    elseif time.format == "date" && time.start_date isa Date && time.end_date isa Date
+        return Dates.year(time.start_date) <= year <= Dates.year(time.end_date)
+    else
+        return false
+    end
+end
+
+"""
+    in(period::String, time::TimeAvailability) -> Bool
+
+Check if a time period string is within the time coverage range.
+"""
+function Base.in(period::String, time::TimeAvailability)
+    # Try to parse as year
+    year_match = match(r"^(\d{4})$", period)
+    if year_match !== nothing
+        year = parse(Int, year_match[1])
+        return in(year, time)
+    end
+    
+    # For other formats, generate the full range and check membership
+    periods = get_time_period_range(time)
+    if periods isa UnitRange{Int}
+        # Convert string year to int and check
+        @assert occursin(r"^\d{4}$", period) "Expected year format YYYY, got: " * period
+        year = parse(Int, period)
+        return year in periods
+    else
+        return period in periods
+    end
+end
+
+"""
     DimensionAvailability
 
 Availability information for a single dimension.
@@ -718,13 +758,27 @@ function find_data_gaps(availability::AvailabilityConstraint, expected_values::D
     gaps = Dict{String, Vector{String}}()
     
     for (dim_id, expected_list) in expected_values
-        available_values = get_available_values(availability, dim_id)
-        available_set = Set(available_values)
-        expected_set = Set(expected_list)
-        
-        missing_values = collect(setdiff(expected_set, available_set))
-        if !isempty(missing_values)
-            gaps[dim_id] = sort(missing_values)
+        if dim_id == "TIME_PERIOD" && availability.time_coverage !== nothing
+            # Special handling for TIME_PERIOD - check against time coverage
+            missing_values = String[]
+            for period in expected_list
+                if !(period in availability.time_coverage)
+                    push!(missing_values, period)
+                end
+            end
+            if !isempty(missing_values)
+                gaps[dim_id] = sort(missing_values)
+            end
+        else
+            # Regular dimension handling
+            available_values = get_available_values(availability, dim_id)
+            available_set = Set(available_values)
+            expected_set = Set(expected_list)
+            
+            missing_values = collect(setdiff(expected_set, available_set))
+            if !isempty(missing_values)
+                gaps[dim_id] = sort(missing_values)
+            end
         end
     end
     
