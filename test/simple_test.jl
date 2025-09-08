@@ -7,15 +7,14 @@ using DataFrames
     @testset "Module Loading" begin
         # Test that key types are exported
         @test isdefined(SDMX, :DataflowSchema)
-        @test isdefined(SDMX, :SourceDataProfile)
-        @test isdefined(SDMX, :ColumnProfile)
+        # Note: SourceDataProfile and ColumnProfile moved to SDMXLLM.jl
         @test isdefined(SDMX, :ValidationResult)
     end
     
     @testset "Key Functions" begin
         # Test that main functions are exported
         @test isdefined(SDMX, :extract_dataflow_schema)
-        @test isdefined(SDMX, :profile_source_data)
+        # Note: profile_source_data moved to SDMXLLM.jl
         @test isdefined(SDMX, :extract_all_codelists)
         @test isdefined(SDMX, :create_validator)
     end
@@ -40,8 +39,7 @@ using DataFrames
             value = [100.0, 200.0, 150.0]
         )
         
-        profile = profile_source_data(test_df, "test_data")
-        @test profile.file_path == "test_data"
+        # Note: Data profiling tests moved to SDMXLLM.jl tests
         @test profile.row_count == 3
         @test profile.column_count == 3
         @test length(profile.columns) == 3

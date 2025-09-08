@@ -71,23 +71,7 @@ using DataFrames
         @test result_strict isa SDMX.ValidationResult
     end
 
-    @testset "profile_with" begin
-        profiler = profile_with("test_data.csv")
-        profile = compliant_df |> profiler
-        @test profile isa SourceDataProfile
-        @test profile.row_count == 1
-        @test profile.column_count == 15
-        
-        # Test with default filename
-        default_profiler = profile_with()
-        profile_default = compliant_df |> default_profiler
-        @test profile_default isa SourceDataProfile
-        @test profile_default.file_path == "data"
-        
-        # Test with larger dataset
-        profile_large = large_df |> profile_with("large_dataset.csv")
-        @test profile_large.row_count == 100
-    end
+    # Note: profile_with functionality has been moved to SDMXLLM.jl
 
     @testset "tap" begin
         tapped_value = 0
@@ -231,11 +215,10 @@ using DataFrames
         # Create multiple datasets
         datasets = [compliant_df, compliant_df, compliant_df]
         
-        # Test parallel profiling
-        profiles = datasets |> SDMX.parallel_map(profile_with("parallel_test"))
-        @test length(profiles) == 3
-        @test all(p -> p isa SourceDataProfile, profiles)
-        @test all(p -> p.row_count == 1, profiles)
+        # Test parallel validation
+        validators = datasets |> SDMX.parallel_map(validate_with(schema))
+        @test length(validators) == 3
+        @test all(v -> v isa SDMX.ValidationResult, validators)
         
         # Test parallel transformation
         transform_func = df -> select(df, :FREQ, :TIME_PERIOD)
@@ -244,7 +227,7 @@ using DataFrames
         @test all(df -> names(df) == ["FREQ", "TIME_PERIOD"], transformed)
         
         # Test with empty collection
-        empty_results = [] |> SDMX.parallel_map(profile_with())
+        empty_results = [] |> SDMX.parallel_map(validate_with(schema))
         @test isempty(empty_results)
         
         # Test with single element
@@ -268,7 +251,7 @@ using DataFrames
                 df -> nrow(df) > 50,
                 chain(
                     df -> select(df, :FREQ, :TIME_PERIOD, :OBS_VALUE),
-                    profile_with("large_data")
+                    SDMX.validate_with(schema; performance_mode=true)
                 ),
                 chain(
                     SDMX.validate_with(schema),
@@ -281,20 +264,19 @@ using DataFrames
         result_small = compliant_df |> complex_pipeline
         @test result_small isa SDMX.ValidationResult
         
-        # Large dataset should go through profiling branch  
+        # Large dataset should go through performance validation branch  
         result_large = large_df |> complex_pipeline
-        @test result_large isa SourceDataProfile
-        @test result_large.row_count == 100
+        @test result_large isa SDMX.ValidationResult
         
-        # Test pipeline with all operators (profile before validation)
+        # Test pipeline with all operators
         full_pipeline = chain(
             tap(df -> @test df ⊆ schema),
-            profile_with("final_data"),
-            tap(profile -> @test profile isa SourceDataProfile)
+            SDMX.validate_with(schema),
+            tap(result -> @test result isa SDMX.ValidationResult)
         )
         
         final_result = compliant_df |> full_pipeline
-        @test final_result isa SourceDataProfile
+        @test final_result isa SDMX.ValidationResult
     end
     
     @testset "Edge cases and error handling" begin
@@ -303,11 +285,9 @@ using DataFrames
         df_with_missing.OBS_VALUE = Vector{Union{Missing, Float64}}(df_with_missing.OBS_VALUE)
         df_with_missing.OBS_VALUE[1] = missing
         
-        profile_missing = df_with_missing |> profile_with("missing_data")
-        # Check that at least one column has missing values
-        obs_value_col = findfirst(col -> col.name == "OBS_VALUE", profile_missing.columns)
-        @test obs_value_col !== nothing
-        @test profile_missing.columns[obs_value_col].missing_count > 0
+        # Test validation with missing values
+        validation_missing = df_with_missing |> SDMX.validate_with(schema)
+        @test validation_missing isa SDMX.ValidationResult
         
         # Test branch with error in condition
         error_branch = branch(

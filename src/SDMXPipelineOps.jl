@@ -107,33 +107,8 @@ function validate_with(schema::DataflowSchema; kwargs...)
     return data -> validator(data)
 end
 
-"""
-    profile_with(filename::String="data") -> Function
-
-Creates a data profiling function for use in processing pipelines.
-
-This function returns a closure that profiles source data and generates
-summary statistics and quality assessments suitable for SDMX data analysis.
-
-# Arguments
-- `filename::String="data"`: Base filename for the data source (default: "data")
-
-# Returns
-- `Function`: A function that takes a DataFrame and returns a SourceDataProfile
-
-# Examples
-```julia
-profile = my_data |> profile_with("my_dataset.csv")
-profiler = profile_with("economic_indicators")
-profile = profiler(my_data)
-```
-
-# See also
-[`profile_source_data`](@ref), [`validate_with`](@ref)
-"""
-function profile_with(filename::String="data")
-    return data -> profile_source_data(data, filename)
-end
+# Note: profile_with function moved to SDMXLLM.jl package
+# Use SDMXLLM.profile_source_data for data profiling functionality
 
 # =================== WORKFLOW CHAINING FUNCTIONS ===================
 
