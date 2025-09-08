@@ -14,7 +14,6 @@ include("SDMXCodelists.jl")
 include("SDMXConcepts.jl")
 include("SDMXDataflows.jl")
 include("SDMXAvailability.jl")
-include("SDMXSourceData.jl")
 include("SDMXValidation.jl")
 include("SDMXPipelineOps.jl")
 include("SDMXDataQueries.jl")
@@ -24,7 +23,7 @@ include("SDMXHelpers.jl")
 
 # === CORE DATA STRUCTURES ===
 # Primary types for SDMX schema, data profiling, validation, and availability analysis
-export DataflowSchema, SourceDataProfile, ColumnProfile
+export DataflowSchema
 export AvailabilityConstraint, DimensionAvailability, TimeAvailability  
 export ValidationResult, ValidationRule, ValidationSeverity, SDMXValidator
 
@@ -51,11 +50,7 @@ export extract_availability, extract_availability_from_dataflow, extract_availab
 export extract_time_availability, get_time_period_values, extract_dimension_values
 export compare_schema_availability, get_data_coverage_summary, find_data_gaps, print_availability_summary
 
-# === SOURCE DATA PROCESSING & PROFILING ===
-# Functions for reading, profiling, and analyzing source data files
-export read_source_data, profile_source_data, suggest_column_mappings, print_source_profile
-# Excel extension stub functions (extended when XLSX.jl is loaded)
-export read_source_data_excel, profile_excel_file, detect_excel_structure
+# Note: Data source processing moved to SDMXLLM.jl package
 
 # === DATA VALIDATION SYSTEM ===
 # Comprehensive validation framework for SDMX data quality and compliance
@@ -68,7 +63,7 @@ export construct_data_url, fetch_sdmx_data, query_sdmx_data, construct_sdmx_key,
 
 # === PIPELINE OPERATIONS & WORKFLOW ===
 # Functional programming interface for chaining SDMX operations
-export validate_with, profile_with, chain, pipeline
+export validate_with, chain, pipeline
 export tap, branch, parallel_map, SDMXPipeline
 
 # === PIPELINE OPERATORS (Unicode) ===
